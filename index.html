@@ -501,11 +501,11 @@ main{max-width:980px;padding:8px 20px 160px}
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js" onerror="this.onerror=null;this.src='https://unpkg.com/jspdf@2.5.2/dist/jspdf.umd.min.js'"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js"></script>
 </head>
-<body data-build="2026-09-15-v40">
+<body data-build="2026-09-22-v41-photo-retry">
 <header>
 <div>
   <h1 id="pageTitle">我的工程</h1>
-  <div class="sub" id="pageSubtitle">多專案工程缺失管理 · V40</div>
+  <div class="sub" id="pageSubtitle">多專案工程缺失管理 · V41</div>
 </div>
 <button class="secondary" id="headerAction" onclick="openProject()">＋ 新增工程</button>
 </header>
@@ -2483,19 +2483,59 @@ compressImage=function(file){
  });
 };
 
+function photoUploadErrorTextV41(err){
+  const status=err?.status||err?.statusCode||err?.code||'';
+  const msg=err?.message||err?.error_description||String(err||'未知錯誤');
+  const s=String(status);
+  if(s==='401')return `401：登入/授權失效（${msg}）`;
+  if(s==='403')return `403：Storage/RLS 權限不足（${msg}）`;
+  if(s==='409')return `409：照片檔名或資料重複（${msg}）`;
+  if(s==='413')return `413：照片容量超過限制（${msg}）`;
+  if(/network|fetch|load failed|timeout|offline/i.test(msg))return `網路連線中斷或逾時（${msg}）`;
+  return `${status?status+'：':''}${msg}`;
+}
+function sleepV41(ms){return new Promise(r=>setTimeout(r,ms));}
+
 async function uploadPhotoCloudV34(projectId,defectId,type,dataUrl){
   if(!isDataImageV34(dataUrl))return {url:dataUrl,path:null};
   const mime=(dataUrl.match(/^data:(image\/[^;]+)/)||[])[1]||'image/jpeg';
   const ext=(mime.split('/')[1]||'jpeg').replace('jpeg','jpg');
   const uploaderId=(window.cloudProfileV27?.id||'unknown').toString().replace(/[^a-zA-Z0-9-]/g,'');
- const uploaderName=encodeURIComponent(window.cloudProfileV27?.display_name||window.cloudProfileV27?.username||'未命名').replace(/%/g,'~');
- const path=`${projectId}/${defectId}/${type}/${Date.now()}__${uploaderId}__${uploaderName}_${Math.random().toString(36).slice(2)}.${ext}`;
-  const {error}=await dh2Cloud.storage.from('defect-photos').upload(path,dataUrlToBlobV27(dataUrl),{contentType:mime,upsert:false});
-  if(error)throw error;
-  const {error:ie}=await dh2Cloud.from('defect_photos').insert({defect_id:defectId,photo_type:type==='improvement'?'improvement':'defect',storage_path:path});
-  if(ie){try{await dh2Cloud.storage.from('defect-photos').remove([path])}catch(_){ }throw ie}
-  const url=await signedPhotoUrlV27(path);
-  return {path,url:url||''};
+  const uploaderName=encodeURIComponent(window.cloudProfileV27?.display_name||window.cloudProfileV27?.username||'未命名').replace(/%/g,'~');
+
+  let lastError=null;
+  for(let attempt=1;attempt<=3;attempt++){
+    // Every retry gets a fresh unique path, avoiding stale/duplicate object collisions.
+    const path=`${projectId}/${defectId}/${type}/${Date.now()}__${attempt}__${uploaderId}__${uploaderName}_${Math.random().toString(36).slice(2)}.${ext}`;
+    try{
+      const {error}=await dh2Cloud.storage.from('defect-photos').upload(
+        path,
+        dataUrlToBlobV27(dataUrl),
+        {contentType:mime,upsert:false}
+      );
+      if(error)throw error;
+
+      const {error:ie}=await dh2Cloud.from('defect_photos').insert({
+        defect_id:defectId,
+        photo_type:type==='improvement'?'improvement':'defect',
+        storage_path:path
+      });
+      if(ie){
+        try{await dh2Cloud.storage.from('defect-photos').remove([path])}catch(_){}
+        throw ie;
+      }
+
+      const url=await signedPhotoUrlV27(path);
+      return {path,url:url||'',attempt};
+    }catch(e){
+      lastError=e;
+      console.warn(`photo upload attempt ${attempt}/3 failed`,e);
+      if(attempt<3)await sleepV41(700*attempt);
+    }
+  }
+  const wrapped=new Error(photoUploadErrorTextV41(lastError));
+  wrapped.original=lastError;
+  throw wrapped;
 }
 
 // Defect row always saves even if one photo fails. Successful base64 photos are replaced by cloud URLs.
@@ -2528,7 +2568,11 @@ cloudSyncAllV27=async function(force=false,progressCb=null){
           try{
             const up=await uploadPhotoCloudV34(p.cloudId,x.cloudId,type,ph);
             if(up.url)next.push(up.url);
-          }catch(e){photoFailures.push({title:x.title,type,error:e?.message||String(e)});console.warn('photo upload failed',e)}
+          }catch(e){
+            next.push(ph); // V41: keep failed photo so user can retry without reselecting it
+            photoFailures.push({title:x.title,type,error:photoUploadErrorTextV41(e)});
+            console.warn('photo upload failed',e);
+          }
           donePhotos++;if(progressCb)progressCb(donePhotos,totalPhotos,photoFailures.length);
         }
         x[key]=next;
@@ -2565,10 +2609,20 @@ saveDefect=async function(){
  if(cloudProfileV27&&cloudProfileV27.role!=='vendor'){
    clearTimeout(cloudTimerV27);setUploadProgressV34('正在儲存缺失資料…');
    const result=await cloudSyncAllV27(false,(done,total,failed)=>setUploadProgressV34(`照片上傳 ${done} / ${total}${failed?`（失敗 ${failed}）`:''}`));
-   setUploadProgressV34('',false);closeModal();await cloudLoadAllV27();
-   if(result?.fatal)return alert('缺失資料同步失敗：'+result.fatal.message);
-   if(result?.photoFailures?.length)alert(`缺失資料已儲存，但有 ${result.photoFailures.length} 張照片上傳失敗。其他照片與缺失資料不受影響。`);
-   else alert(editId?'缺失已更新並同步雲端':'缺失已儲存並同步雲端');
+   setUploadProgressV34('',false);
+   if(result?.fatal)return alert('缺失資料同步失敗：'+photoUploadErrorTextV41(result.fatal));
+   if(result?.photoFailures?.length){
+     // V41: do not close/reload. Keep only the current cloud URLs + failed local photos in the form.
+     tempPhotos=[...(x.defectPhotos||[])];
+     tempImprovePhotos=[...(x.improvementPhotos||[])];
+     renderPhotoPreview();
+     renderImprovePhotoPreview();
+     const details=result.photoFailures.slice(0,5).map((f,i)=>`${i+1}. ${f.type==='improvement'?'改善照片':'缺失照片'}：${f.error}`).join('\n');
+     alert(`缺失資料已儲存，但有 ${result.photoFailures.length} 張照片上傳失敗。\n\n系統已自動重試 3 次，失敗照片仍保留在畫面，可直接再次按「儲存缺失」重試。\n\n錯誤原因：\n${details}${result.photoFailures.length>5?'\n…其餘錯誤略':''}`);
+     return;
+   }
+   closeModal();await cloudLoadAllV27();
+   alert(editId?'缺失已更新並同步雲端':'缺失已儲存並同步雲端');
  }else{closeModal();alert(editId?'缺失已更新':'缺失已儲存')}
 };
 
