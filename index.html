@@ -5651,3 +5651,119 @@ document.addEventListener('change',()=>setTimeout(()=>{markV80();v80RebuildReply
 setTimeout(markV80,5500);
 })();
 </script>
+
+<!-- V83 FINAL: unified sorting, no date separator rows, explicit date sort column, hard version lock -->
+<style id="v83-final-style">
+#list .date-separator-v35,#list .date-separator-v80,#list .date-separator-v82{display:none!important}
+.defect-table-v12 th.v83-date-col,.defect-table-v12 td.v83-date-col{width:86px!important;white-space:nowrap!important;font-size:10px!important}
+@media(max-width:600px){
+ .defect-table-v12 th.v83-date-col,.defect-table-v12 td.v83-date-col{width:72px!important;font-size:9px!important;padding-left:3px!important;padding-right:3px!important}
+ .defect-table-v12 th:nth-child(1),.defect-table-v12 td:nth-child(1){width:64px!important}
+ .defect-table-v12 th:nth-child(3),.defect-table-v12 td:nth-child(3){width:92px!important}
+ .defect-table-v12 th:nth-child(5),.defect-table-v12 td:nth-child(5){width:62px!important;min-width:62px!important;max-width:62px!important;padding:5px 3px!important}
+ .defect-table-v12 th:nth-child(6),.defect-table-v12 td:nth-child(6){width:28px!important;min-width:28px!important;max-width:28px!important;padding:0 4px!important;text-align:center!important}
+}
+</style>
+<script id="v83-final-fix">
+(function(){
+'use strict';
+
+function v83Date(v){const m=String(v||'').match(/\d{4}-\d{2}-\d{2}/);return m?m[0]:'';}
+function v83AreaKey(value){
+ const s=String(value||'').trim().toUpperCase().replace(/\s+/g,' ');
+ let m=s.match(/^B\s*(\d+)\s*F?/); if(m)return {g:0,n:-Number(m[1]),t:s};
+ m=s.match(/^(\d+)\s*F/); if(m)return {g:1,n:Number(m[1]),t:s};
+ // OCR/現場常見「15C7主臥」「15B7」這種省略 F 的格式，也視為 15F。
+ m=s.match(/^(\d{1,2})(?=[A-Z\s\-])/); if(m)return {g:1,n:Number(m[1]),t:s};
+ m=s.match(/^R\s*(\d*)\s*F?/); if(m)return {g:2,n:Number(m[1]||999),t:s};
+ return {g:3,n:0,t:s};
+}
+window.compareAreaV36=function(a,b){
+ const A=v83AreaKey(a),B=v83AreaKey(b);
+ if(A.g!==B.g)return A.g-B.g;
+ if(A.n!==B.n)return A.n-B.n;
+ return String(A.t).localeCompare(String(B.t),'zh-Hant',{numeric:true,sensitivity:'base'});
+};
+
+function v83LatestImproveTs(x){
+ const metas=Array.isArray(x?.improvementPhotoMeta)?x.improvementPhotoMeta:[];
+ const ts=metas.map(m=>Date.parse(m?.createdAt||m?.created_at||m?.uploadedAt||m?.uploaded_at||'')).filter(Number.isFinite);
+ if(ts.length)return Math.max(...ts);
+ const raw=x?.closedAt||x?.closed_at||x?.updatedAt||x?.updated_at||x?.completedAt||x?.completed_at||x?.replyAt||x?.reply_at||x?.closedDate||x?.closed_date||x?.replyDate||x?.reply_date;
+ const t=Date.parse(raw||''); return Number.isFinite(t)?t:0;
+}
+function v83SortRows(){
+ const table=document.querySelector('#list .defect-table-v12'); if(!table)return;
+ const tbody=table.tBodies?.[0]; if(!tbody)return;
+ tbody.querySelectorAll('.date-separator-v35,.date-separator-v80,.date-separator-v82').forEach(e=>e.remove());
+ const p=typeof project==='function'?project():null; if(!p)return;
+ const rows=[...tbody.rows].filter(r=>r.querySelector('.defect-select'));
+ const key=window.defectSortV36?.key||defectSortV36?.key||'';
+ const dir=window.defectSortV36?.dir||defectSortV36?.dir||1;
+ if(key==='area'||key==='date'||key==='title'){
+   rows.sort((ra,rb)=>{
+     const ia=ra.querySelector('.defect-select')?.dataset?.id,ib=rb.querySelector('.defect-select')?.dataset?.id;
+     const a=p.defects.find(x=>String(x.id)===String(ia)),b=p.defects.find(x=>String(x.id)===String(ib));
+     let c=0;
+     if(key==='area')c=window.compareAreaV36(a?.area,b?.area);
+     else if(key==='date')c=v83Date(a?.created).localeCompare(v83Date(b?.created));
+     else c=String(a?.title||'').localeCompare(String(b?.title||''),'zh-Hant',{numeric:true,sensitivity:'base'});
+     if(c===0){
+       // 同樓層/同日期時，最新建立或最新改善的排前面，避免同層被看起來打散。
+       const at=key==='date'?v83LatestImproveTs(a):Date.parse(a?.createdAt||a?.created_at||a?.created||'')||0;
+       const bt=key==='date'?v83LatestImproveTs(b):Date.parse(b?.createdAt||b?.created_at||b?.created||'')||0;
+       if(at!==bt)c=bt-at;
+     }
+     return c*dir;
+   });
+   rows.forEach(r=>tbody.appendChild(r));
+ }
+}
+function v83EnhanceTable(){
+ const table=document.querySelector('#list .defect-table-v12'); if(!table)return;
+ const head=table.tHead?.rows?.[0]; if(!head)return;
+ // 清掉所有舊日期分組列，不再用整列日期切割資料。
+ table.querySelectorAll('.date-separator-v35,.date-separator-v80,.date-separator-v82').forEach(e=>e.remove());
+ if(!head.querySelector('.v83-date-col')){
+   const th=document.createElement('th');
+   th.className='sortable-th-v36 v83-date-col';
+   th.onclick=()=>{ if(defectSortV36.key==='date')defectSortV36.dir*=-1;else{defectSortV36.key='date';defectSortV36.dir=-1;} renderDefects(); };
+   head.insertBefore(th,head.children[3]);
+ }
+ const dth=head.querySelector('.v83-date-col');
+ if(dth){
+   const active=defectSortV36.key==='date'; dth.classList.toggle('active',active);
+   dth.innerHTML='日期 <span class="sort-arrow-v36">'+(active?(defectSortV36.dir===1?'▲':'▼'):'↕')+'</span>';
+ }
+ const p=typeof project==='function'?project():null;
+ [...table.tBodies?.[0]?.rows||[]].forEach(row=>{
+   if(!row.querySelector('.defect-select'))return;
+   if(row.querySelector('.v83-date-col'))return;
+   const id=row.querySelector('.defect-select')?.dataset?.id;
+   const x=p?.defects?.find(a=>String(a.id)===String(id));
+   const td=document.createElement('td');td.className='v83-date-col';td.textContent=v83Date(x?.created)||'-';
+   row.insertBefore(td,row.children[3]);
+ });
+ v83SortRows();
+}
+
+const priorV83=window.renderDefects;
+if(typeof priorV83==='function')window.renderDefects=function(){
+ const r=priorV83.apply(this,arguments);
+ setTimeout(v83EnhanceTable,0);setTimeout(v83EnhanceTable,150);
+ return r;
+};
+
+function markV83(){
+ const sub=document.getElementById('pageSubtitle');
+ if(sub){const base=(sub.textContent||'多專案工程缺失管理').replace(/\s*[·・]?\s*V\d+(?:\.\d+)?/ig,'');sub.textContent=base+' · V83';}
+ const cloud=document.querySelector('#cloudPanelV27 b');if(cloud)cloud.textContent='☁️ DH2 團隊雲端 · V83';
+ if(document.body)document.body.dataset.build='2026-09-22-v83-unified-sort-date-column';
+}
+function keepClean(){markV83();document.querySelectorAll('#list .date-separator-v35,#list .date-separator-v80,#list .date-separator-v82').forEach(e=>e.remove());v83EnhanceTable();}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>{keepClean();setTimeout(keepClean,500);},{once:true});else keepClean();
+[1200,4200,6000].forEach(ms=>setTimeout(keepClean,ms));
+document.addEventListener('click',()=>setTimeout(keepClean,180),true);
+document.addEventListener('change',()=>setTimeout(keepClean,180),true);
+})();
+</script>
