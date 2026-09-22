@@ -4883,4 +4883,174 @@ setTimeout(v64Lock,200);setTimeout(v64Lock,1000);setTimeout(v64Lock,2500);
 })();
 </script>
 
+
+<!-- V65: status cloud persistence + single-line closed time -->
+<style id="v65-status-fix-style">
+.v64-close-meta{
+  display:block!important;
+  margin-top:3px!important;
+  font-size:8.6px!important;
+  line-height:1.15!important;
+  color:#4f6f64!important;
+  font-weight:700!important;
+  white-space:nowrap!important;
+  overflow:visible!important;
+  letter-spacing:-0.15px!important;
+}
+.defect-table-v12 td:nth-child(4){
+  overflow:visible!important;
+}
+</style>
+
+<script id="v65-status-fix-script">
+(function(){
+'use strict';
+
+/* V65: Status changes must be written to Supabase first.
+   V64 only changed local state, so the next cloud refresh restored the old status. */
+window.setStatus = async function(status){
+  const x=project()?.defects?.find(a=>String(a.id)===String(window.currentId));
+  if(!x)return;
+
+  const oldStatus=x.status;
+  x.status=status;               // optimistic UI
+  save();
+  closeStatusModal();
+  closeDetail();
+  render();
+
+  try{
+    if(window.cloudProfileV27 && window.dh2Cloud && (x.cloudId||x.id)){
+      const {error}=await dh2Cloud.from('defects')
+        .update({status,updated_at:new Date().toISOString()})
+        .eq('id',x.cloudId||x.id);
+      if(error)throw error;
+    }
+  }catch(err){
+    x.status=oldStatus;          // cloud failed: restore real value instead of lying to the user
+    save();
+    render();
+    alert('狀態更新失敗：'+(err?.message||err));
+  }
+};
+
+function v65Fmt(v){
+  if(!v)return '';
+  const d=new Date(v);
+  if(Number.isNaN(d.getTime()))return String(v).replace(/:\d{2}(?:\.\d+)?(?:Z|[+-]\d\d:\d\d)?$/,'');
+  const z=n=>String(n).padStart(2,'0');
+  return `${d.getFullYear()}-${z(d.getMonth()+1)}-${z(d.getDate())} ${z(d.getHours())}:${z(d.getMinutes())}`;
+}
+
+/* Replace V64's wrapped status metadata with a compact one-line value. */
+function v65CompactClosedMeta(){
+  document.querySelectorAll('.v64-close-meta').forEach(el=>{
+    let t=(el.textContent||'').trim();
+    // If old data has seconds, strip them.
+    t=t.replace(/(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}):\d{2}/g,'$1');
+    el.textContent=t;
+    el.title=t;
+  });
+}
+
+const obs=new MutationObserver(()=>v65CompactClosedMeta());
+document.addEventListener('DOMContentLoaded',()=>{
+  obs.observe(document.body,{childList:true,subtree:true});
+  v65CompactClosedMeta();
+});
+
+function v65Lock(){
+  const sub=document.getElementById('pageSubtitle');
+  if(sub)sub.textContent=(sub.textContent||'多專案工程缺失管理 · V65').replace(/V\d+(?:\.\d+)?/ig,'V65');
+  const cloud=document.querySelector('#cloudPanelV27 b');
+  if(cloud)cloud.textContent='☁️ DH2 團隊雲端 · V65';
+  if(document.body)document.body.dataset.build='2026-09-22-v65';
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',v65Lock);else v65Lock();
+setTimeout(v65Lock,200);setTimeout(v65Lock,1000);setTimeout(v65Lock,2500);
+})();
+</script>
+
+
+<!-- V66: always show improvement uploader + upload time inside defect detail -->
+<style id="v66-detail-improvement-meta-style">
+#dBody .v66-improvement-meta{
+  margin:6px 0 12px;
+  font-size:12px;
+  line-height:1.35;
+  color:#667477;
+  white-space:nowrap;
+}
+#dBody .v66-improvement-item{min-width:0}
+#dBody .v66-improvement-item img{
+  width:100%;
+  aspect-ratio:1;
+  object-fit:cover;
+  border-radius:12px;
+  display:block;
+}
+</style>
+<script id="v66-detail-improvement-meta-script">
+(function(){
+'use strict';
+function fmt66(v){
+  if(!v)return '';
+  const d=new Date(v);
+  if(Number.isNaN(d.getTime()))return String(v).replace(/(\d{2}:\d{2}):\d{2}.*/,'$1');
+  const z=n=>String(n).padStart(2,'0');
+  return `${d.getFullYear()}-${z(d.getMonth()+1)}-${z(d.getDate())} ${z(d.getHours())}:${z(d.getMinutes())}`;
+}
+function esc66(v){
+  return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function add66(){
+  if(!window.currentId)return;
+  const x=project()?.defects?.find(a=>String(a.id)===String(window.currentId));
+  if(!x)return;
+  const photos=Array.isArray(x.improvementPhotos)?x.improvementPhotos:[];
+  if(!photos.length)return;
+
+  const grids=[...document.querySelectorAll('#dBody .photo-grid')];
+  const grid=grids[grids.length-1];
+  if(!grid)return;
+
+  const metas=Array.isArray(x.improvementPhotoMeta)?x.improvementPhotoMeta:[];
+  [...grid.querySelectorAll(':scope > img')].forEach((img,i)=>{
+    const url=photos[i]||img.getAttribute('src')||'';
+    const m=metas.find(a=>a&&a.url===url)||metas[i]||{};
+    const card=document.createElement('div');
+    card.className='v66-improvement-item';
+    img.parentNode.insertBefore(card,img);
+    card.appendChild(img);
+    const meta=document.createElement('div');
+    meta.className='v66-improvement-meta';
+    meta.innerHTML=`上傳人員：${esc66(m.uploaderName||'舊資料')}<br>上傳時間：${esc66(fmt66(m.createdAt)||'舊資料無紀錄')}`;
+    card.appendChild(meta);
+  });
+}
+const observer66=new MutationObserver(()=>setTimeout(add66,0));
+document.addEventListener('DOMContentLoaded',()=>{
+  const d=document.getElementById('dBody');
+  if(d)observer66.observe(d,{childList:true,subtree:true});
+});
+const oldOpenDetail66=window.openDetail;
+if(typeof oldOpenDetail66==='function'){
+  window.openDetail=function(){
+    const r=oldOpenDetail66.apply(this,arguments);
+    setTimeout(add66,0);
+    return r;
+  };
+}
+function lock66(){
+  const sub=document.getElementById('pageSubtitle');
+  if(sub)sub.textContent=(sub.textContent||'多專案工程缺失管理 · V66').replace(/V\d+(?:\.\d+)?/ig,'V66');
+  const cloud=document.querySelector('#cloudPanelV27 b');
+  if(cloud)cloud.textContent='☁️ DH2 團隊雲端 · V66';
+  if(document.body)document.body.dataset.build='2026-09-22-v66';
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',lock66);else lock66();
+setTimeout(lock66,200);setTimeout(lock66,1000);setTimeout(lock66,2500);
+})();
+</script>
+
 </body></html>
