@@ -4972,84 +4972,29 @@ setTimeout(v65Lock,200);setTimeout(v65Lock,1000);setTimeout(v65Lock,2500);
 </script>
 
 
-<!-- V66: always show improvement uploader + upload time inside defect detail -->
-<style id="v66-detail-improvement-meta-style">
-#dBody .v66-improvement-meta{
-  margin:6px 0 12px;
-  font-size:12px;
-  line-height:1.35;
-  color:#667477;
-  white-space:nowrap;
-}
-#dBody .v66-improvement-item{min-width:0}
-#dBody .v66-improvement-item img{
-  width:100%;
-  aspect-ratio:1;
-  object-fit:cover;
-  border-radius:12px;
-  display:block;
-}
-</style>
-<script id="v66-detail-improvement-meta-script">
+<!-- V67 stable hotfix: rollback V66 recursive detail DOM observer; keep V65/V64 photo metadata -->
+<script id="v67-stable-hotfix">
 (function(){
 'use strict';
-function fmt66(v){
-  if(!v)return '';
-  const d=new Date(v);
-  if(Number.isNaN(d.getTime()))return String(v).replace(/(\d{2}:\d{2}):\d{2}.*/,'$1');
-  const z=n=>String(n).padStart(2,'0');
-  return `${d.getFullYear()}-${z(d.getMonth()+1)}-${z(d.getDate())} ${z(d.getHours())}:${z(d.getMinutes())}`;
-}
-function esc66(v){
-  return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-}
-function add66(){
-  if(!window.currentId)return;
-  const x=project()?.defects?.find(a=>String(a.id)===String(window.currentId));
-  if(!x)return;
-  const photos=Array.isArray(x.improvementPhotos)?x.improvementPhotos:[];
-  if(!photos.length)return;
-
-  const grids=[...document.querySelectorAll('#dBody .photo-grid')];
-  const grid=grids[grids.length-1];
-  if(!grid)return;
-
-  const metas=Array.isArray(x.improvementPhotoMeta)?x.improvementPhotoMeta:[];
-  [...grid.querySelectorAll(':scope > img')].forEach((img,i)=>{
-    const url=photos[i]||img.getAttribute('src')||'';
-    const m=metas.find(a=>a&&a.url===url)||metas[i]||{};
-    const card=document.createElement('div');
-    card.className='v66-improvement-item';
-    img.parentNode.insertBefore(card,img);
-    card.appendChild(img);
-    const meta=document.createElement('div');
-    meta.className='v66-improvement-meta';
-    meta.innerHTML=`上傳人員：${esc66(m.uploaderName||'舊資料')}<br>上傳時間：${esc66(fmt66(m.createdAt)||'舊資料無紀錄')}`;
-    card.appendChild(meta);
-  });
-}
-const observer66=new MutationObserver(()=>setTimeout(add66,0));
-document.addEventListener('DOMContentLoaded',()=>{
-  const d=document.getElementById('dBody');
-  if(d)observer66.observe(d,{childList:true,subtree:true});
-});
-const oldOpenDetail66=window.openDetail;
-if(typeof oldOpenDetail66==='function'){
-  window.openDetail=function(){
-    const r=oldOpenDetail66.apply(this,arguments);
-    setTimeout(add66,0);
-    return r;
-  };
-}
-function lock66(){
+function lockV67(){
   const sub=document.getElementById('pageSubtitle');
-  if(sub)sub.textContent=(sub.textContent||'多專案工程缺失管理 · V66').replace(/V\d+(?:\.\d+)?/ig,'V66');
+  if(sub){
+    const t=sub.textContent||'多專案工程缺失管理';
+    sub.textContent=/V\d+(?:\.\d+)?/i.test(t)
+      ? t.replace(/V\d+(?:\.\d+)?/ig,'V67')
+      : t+' · V67';
+  }
   const cloud=document.querySelector('#cloudPanelV27 b');
-  if(cloud)cloud.textContent='☁️ DH2 團隊雲端 · V66';
-  if(document.body)document.body.dataset.build='2026-09-22-v66';
+  if(cloud)cloud.textContent='☁️ DH2 團隊雲端 · V67';
+  if(document.body)document.body.dataset.build='2026-09-22-v67';
 }
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',lock66);else lock66();
-setTimeout(lock66,200);setTimeout(lock66,1000);setTimeout(lock66,2500);
+if(document.readyState==='loading'){
+  document.addEventListener('DOMContentLoaded',lockV67,{once:true});
+}else{
+  lockV67();
+}
+setTimeout(lockV67,250);
+setTimeout(lockV67,1200);
 })();
 </script>
 
