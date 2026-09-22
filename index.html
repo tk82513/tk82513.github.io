@@ -501,11 +501,11 @@ main{max-width:980px;padding:8px 20px 160px}
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js" onerror="this.onerror=null;this.src='https://unpkg.com/jspdf@2.5.2/dist/jspdf.umd.min.js'"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js"></script>
 </head>
-<body data-build="2026-09-22-v91">
+<body data-build="2026-09-22-v92">
 <header>
 <div>
   <h1 id="pageTitle">我的工程</h1>
-  <div class="sub" id="pageSubtitle">多專案工程缺失管理 · V91</div>
+  <div class="sub" id="pageSubtitle">多專案工程缺失管理 · V92</div>
 </div>
 <button class="secondary" id="headerAction" onclick="openProject()">＋ 新增工程</button>
 </header>
@@ -5618,11 +5618,11 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 [500,1200,2500,4500].forEach(ms=>setTimeout(()=>{mark();apply()},ms));
 })();
 </script>
-\n\n<!-- V91 FINAL: stable version label + direct PDF download for iOS Safari -->
+\n\n<!-- V92 FINAL: Safari-safe finite version refresh + direct PDF download -->
 <script id="v91-final-pdf-version-fix">
 (function(){
 'use strict';
-const V91='V91';
+const V91='V92';
 function lockVersionV91(){
   const sub=document.getElementById('pageSubtitle');
   if(sub){
@@ -5632,7 +5632,7 @@ function lockVersionV91(){
   }
   const cloud=document.querySelector('#cloudPanelV27 b');
   if(cloud && cloud.textContent!=='☁️ DH2 團隊雲端 · '+V91) cloud.textContent='☁️ DH2 團隊雲端 · '+V91;
-  if(document.body && document.body.dataset.build!=='2026-09-22-v91') document.body.dataset.build='2026-09-22-v91';
+  if(document.body && document.body.dataset.build!=='2026-09-22-v92') document.body.dataset.build='2026-09-22-v92';
 }
 function reportItemsV91(){
   try{if(typeof reportDefectsV40==='function')return reportDefectsV40();}catch(e){}
@@ -5699,7 +5699,8 @@ function bindV91(){
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',bindV91,{once:true});else bindV91();
 setTimeout(bindV91,50);setTimeout(bindV91,1500);setTimeout(bindV91,4200);
-const mo=new MutationObserver(()=>lockVersionV91());
-if(document.documentElement)mo.observe(document.documentElement,{subtree:true,childList:true,characterData:true});
+/* V92: DO NOT use a document-wide MutationObserver on iOS Safari.
+   Older build labels are corrected only a few times after startup. */
+[7000,12000].forEach(ms=>setTimeout(lockVersionV91,ms));
 })();
 </script>
