@@ -934,7 +934,7 @@ function renderDefects(){
      const thumb=dp[0]?`<img class="thumb" src="${esc(dp[0])}" alt="缺失照片" onclick="event.stopPropagation();openPhotoLightbox('${x.id}',0,'defect')">`:'<div class="thumb" style="display:grid;place-items:center;background:#f1f4f4">—</div>';
      const od=makeOverdue(x);
      const checked=selectedDefectIds.has(String(x.id))?'checked':'';
-     return `<tr onclick="openDetail('${x.id}')"><td>${thumb}</td><td class="title-cell">${esc(x.title)}${od?`<div class="overdue-badge" style="margin:4px 0 0">${od}</div>`:''}<div class="row-meta"><span class="row-vendor">${esc(x.vendor||'機電工程')} · 起單人：${esc(x.createdByName||'舊資料')}</span><span class="row-dates">${esc(x.created||'-')} → ${esc(x.due||'-')}</span></div></td><td>${x.area?`<span class="loc-chip">📍 ${esc(x.area)}</span>`:'<span style="color:#9aa2a4">未辨識</span>'}</td><td><span class="state-chip ${esc(x.status||'pending')}">${esc(statusText[x.status]||'待處理')}</span></td><td class="select-col"><input class="defect-select" data-id="${esc(x.id)}" type="checkbox" ${checked} onclick="event.stopPropagation();toggleDefectSelection('${x.id}',this.checked)"></td></tr>`;
+     return `<tr onclick="openDetail('${x.id}')"><td>${thumb}</td><td class="title-cell">${esc(x.title)}${od?`<div class="overdue-badge" style="margin:4px 0 0">${od}</div>`:''}<div class="row-meta"><span class="row-vendor">${esc(x.vendor||'機電工程')} · 起單人：${esc(x.createdByName||'舊資料')}</span><span class="row-dates">${esc(x.created||'-')}</span></div></td><td>${x.area?`<span class="loc-chip">📍 ${esc(x.area)}</span>`:'<span style="color:#9aa2a4">未辨識</span>'}</td><td><span class="state-chip ${esc(x.status||'pending')}">${esc(statusText[x.status]||'待處理')}</span></td><td class="select-col"><input class="defect-select" data-id="${esc(x.id)}" type="checkbox" ${checked} onclick="event.stopPropagation();toggleDefectSelection('${x.id}',this.checked)"></td></tr>`;
    }).join('')}</tbody></table>`;
  }else{
    list.className='card-mode-v12';
@@ -5652,118 +5652,76 @@ setTimeout(markV80,5500);
 })();
 </script>
 
-<!-- V83 FINAL: unified sorting, no date separator rows, explicit date sort column, hard version lock -->
-<style id="v83-final-style">
+<!-- V84 FINAL: keep unified floor sorting, remove separate date column, title shows created date only -->
+<style id="v84-final-style">
 #list .date-separator-v35,#list .date-separator-v80,#list .date-separator-v82{display:none!important}
-.defect-table-v12 th.v83-date-col,.defect-table-v12 td.v83-date-col{width:86px!important;white-space:nowrap!important;font-size:10px!important}
+/* 把日期欄拿掉後，把寬度還給缺失名稱，避免手機上被裁切。 */
 @media(max-width:600px){
- .defect-table-v12 th.v83-date-col,.defect-table-v12 td.v83-date-col{width:72px!important;font-size:9px!important;padding-left:3px!important;padding-right:3px!important}
- .defect-table-v12 th:nth-child(1),.defect-table-v12 td:nth-child(1){width:64px!important}
- .defect-table-v12 th:nth-child(3),.defect-table-v12 td:nth-child(3){width:92px!important}
- .defect-table-v12 th:nth-child(5),.defect-table-v12 td:nth-child(5){width:62px!important;min-width:62px!important;max-width:62px!important;padding:5px 3px!important}
- .defect-table-v12 th:nth-child(6),.defect-table-v12 td:nth-child(6){width:28px!important;min-width:28px!important;max-width:28px!important;padding:0 4px!important;text-align:center!important}
+ .defect-table-v12 th:nth-child(1),.defect-table-v12 td:nth-child(1){width:68px!important}
+ .defect-table-v12 th:nth-child(2),.defect-table-v12 td:nth-child(2){width:auto!important;min-width:0!important}
+ .defect-table-v12 th:nth-child(3),.defect-table-v12 td:nth-child(3){width:108px!important}
+ .defect-table-v12 th:nth-child(4),.defect-table-v12 td:nth-child(4){width:72px!important}
+ .defect-table-v12 th:nth-child(5),.defect-table-v12 td:nth-child(5){width:30px!important;min-width:30px!important;max-width:30px!important;padding:0 4px!important}
+ .defect-table-v12 .title-cell{font-size:13px!important;overflow:visible!important}
+ .defect-table-v12 .title-cell .row-meta{font-size:9.5px!important;white-space:normal!important;overflow:visible!important}
+ .defect-table-v12 .title-cell .row-vendor{white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+ .defect-table-v12 .title-cell .row-dates{white-space:nowrap!important}
 }
 </style>
-<script id="v83-final-fix">
+<script id="v84-final-fix">
 (function(){
 'use strict';
-
-function v83Date(v){const m=String(v||'').match(/\d{4}-\d{2}-\d{2}/);return m?m[0]:'';}
-function v83AreaKey(value){
+function v84AreaKey(value){
  const s=String(value||'').trim().toUpperCase().replace(/\s+/g,' ');
  let m=s.match(/^B\s*(\d+)\s*F?/); if(m)return {g:0,n:-Number(m[1]),t:s};
  m=s.match(/^(\d+)\s*F/); if(m)return {g:1,n:Number(m[1]),t:s};
- // OCR/現場常見「15C7主臥」「15B7」這種省略 F 的格式，也視為 15F。
  m=s.match(/^(\d{1,2})(?=[A-Z\s\-])/); if(m)return {g:1,n:Number(m[1]),t:s};
  m=s.match(/^R\s*(\d*)\s*F?/); if(m)return {g:2,n:Number(m[1]||999),t:s};
  return {g:3,n:0,t:s};
 }
 window.compareAreaV36=function(a,b){
- const A=v83AreaKey(a),B=v83AreaKey(b);
+ const A=v84AreaKey(a),B=v84AreaKey(b);
  if(A.g!==B.g)return A.g-B.g;
  if(A.n!==B.n)return A.n-B.n;
  return String(A.t).localeCompare(String(B.t),'zh-Hant',{numeric:true,sensitivity:'base'});
 };
-
-function v83LatestImproveTs(x){
- const metas=Array.isArray(x?.improvementPhotoMeta)?x.improvementPhotoMeta:[];
- const ts=metas.map(m=>Date.parse(m?.createdAt||m?.created_at||m?.uploadedAt||m?.uploaded_at||'')).filter(Number.isFinite);
- if(ts.length)return Math.max(...ts);
- const raw=x?.closedAt||x?.closed_at||x?.updatedAt||x?.updated_at||x?.completedAt||x?.completed_at||x?.replyAt||x?.reply_at||x?.closedDate||x?.closed_date||x?.replyDate||x?.reply_date;
- const t=Date.parse(raw||''); return Number.isFinite(t)?t:0;
-}
-function v83SortRows(){
- const table=document.querySelector('#list .defect-table-v12'); if(!table)return;
- const tbody=table.tBodies?.[0]; if(!tbody)return;
- tbody.querySelectorAll('.date-separator-v35,.date-separator-v80,.date-separator-v82').forEach(e=>e.remove());
- const p=typeof project==='function'?project():null; if(!p)return;
- const rows=[...tbody.rows].filter(r=>r.querySelector('.defect-select'));
- const key=window.defectSortV36?.key||defectSortV36?.key||'';
- const dir=window.defectSortV36?.dir||defectSortV36?.dir||1;
- if(key==='area'||key==='date'||key==='title'){
-   rows.sort((ra,rb)=>{
-     const ia=ra.querySelector('.defect-select')?.dataset?.id,ib=rb.querySelector('.defect-select')?.dataset?.id;
-     const a=p.defects.find(x=>String(x.id)===String(ia)),b=p.defects.find(x=>String(x.id)===String(ib));
-     let c=0;
-     if(key==='area')c=window.compareAreaV36(a?.area,b?.area);
-     else if(key==='date')c=v83Date(a?.created).localeCompare(v83Date(b?.created));
-     else c=String(a?.title||'').localeCompare(String(b?.title||''),'zh-Hant',{numeric:true,sensitivity:'base'});
-     if(c===0){
-       // 同樓層/同日期時，最新建立或最新改善的排前面，避免同層被看起來打散。
-       const at=key==='date'?v83LatestImproveTs(a):Date.parse(a?.createdAt||a?.created_at||a?.created||'')||0;
-       const bt=key==='date'?v83LatestImproveTs(b):Date.parse(b?.createdAt||b?.created_at||b?.created||'')||0;
-       if(at!==bt)c=bt-at;
-     }
-     return c*dir;
-   });
-   rows.forEach(r=>tbody.appendChild(r));
- }
-}
-function v83EnhanceTable(){
- const table=document.querySelector('#list .defect-table-v12'); if(!table)return;
- const head=table.tHead?.rows?.[0]; if(!head)return;
- // 清掉所有舊日期分組列，不再用整列日期切割資料。
+function v84CleanTable(){
+ const table=document.querySelector('#list .defect-table-v12');if(!table)return;
  table.querySelectorAll('.date-separator-v35,.date-separator-v80,.date-separator-v82').forEach(e=>e.remove());
- if(!head.querySelector('.v83-date-col')){
-   const th=document.createElement('th');
-   th.className='sortable-th-v36 v83-date-col';
-   th.onclick=()=>{ if(defectSortV36.key==='date')defectSortV36.dir*=-1;else{defectSortV36.key='date';defectSortV36.dir=-1;} renderDefects(); };
-   head.insertBefore(th,head.children[3]);
- }
- const dth=head.querySelector('.v83-date-col');
- if(dth){
-   const active=defectSortV36.key==='date'; dth.classList.toggle('active',active);
-   dth.innerHTML='日期 <span class="sort-arrow-v36">'+(active?(defectSortV36.dir===1?'▲':'▼'):'↕')+'</span>';
- }
- const p=typeof project==='function'?project():null;
- [...table.tBodies?.[0]?.rows||[]].forEach(row=>{
-   if(!row.querySelector('.defect-select'))return;
-   if(row.querySelector('.v83-date-col'))return;
-   const id=row.querySelector('.defect-select')?.dataset?.id;
-   const x=p?.defects?.find(a=>String(a.id)===String(id));
-   const td=document.createElement('td');td.className='v83-date-col';td.textContent=v83Date(x?.created)||'-';
-   row.insertBefore(td,row.children[3]);
+ // 移除 V83 曾加入的獨立日期欄。
+ table.querySelectorAll('.v83-date-col').forEach(e=>e.remove());
+ // 列表只保留起單日期，不再顯示「起單日期 → 改善期限」。
+ table.querySelectorAll('.row-dates').forEach(el=>{
+   const m=(el.textContent||'').match(/\d{4}-\d{2}-\d{2}/);
+   el.textContent=m?m[0]:'-';
  });
- v83SortRows();
 }
-
-const priorV83=window.renderDefects;
-if(typeof priorV83==='function')window.renderDefects=function(){
- const r=priorV83.apply(this,arguments);
- setTimeout(v83EnhanceTable,0);setTimeout(v83EnhanceTable,150);
- return r;
-};
-
-function markV83(){
- const sub=document.getElementById('pageSubtitle');
- if(sub){const base=(sub.textContent||'多專案工程缺失管理').replace(/\s*[·・]?\s*V\d+(?:\.\d+)?/ig,'');sub.textContent=base+' · V83';}
- const cloud=document.querySelector('#cloudPanelV27 b');if(cloud)cloud.textContent='☁️ DH2 團隊雲端 · V83';
- if(document.body)document.body.dataset.build='2026-09-22-v83-unified-sort-date-column';
+function v84SortRows(){
+ const table=document.querySelector('#list .defect-table-v12');if(!table)return;
+ const tbody=table.tBodies?.[0],p=typeof project==='function'?project():null;if(!tbody||!p)return;
+ const key=window.defectSortV36?.key||'';const dir=window.defectSortV36?.dir||1;
+ if(key!=='area'&&key!=='title')return;
+ const rows=[...tbody.rows].filter(r=>r.querySelector('.defect-select'));
+ rows.sort((ra,rb)=>{
+   const ia=ra.querySelector('.defect-select')?.dataset?.id,ib=rb.querySelector('.defect-select')?.dataset?.id;
+   const a=p.defects.find(x=>String(x.id)===String(ia)),b=p.defects.find(x=>String(x.id)===String(ib));
+   let c=key==='area'?window.compareAreaV36(a?.area,b?.area):String(a?.title||'').localeCompare(String(b?.title||''),'zh-Hant',{numeric:true,sensitivity:'base'});
+   if(c===0){const at=Date.parse(a?.createdAt||a?.created_at||a?.created||'')||0,bt=Date.parse(b?.createdAt||b?.created_at||b?.created||'')||0;if(at!==bt)c=bt-at;}
+   return c*dir;
+ });
+ rows.forEach(r=>tbody.appendChild(r));
 }
-function keepClean(){markV83();document.querySelectorAll('#list .date-separator-v35,#list .date-separator-v80,#list .date-separator-v82').forEach(e=>e.remove());v83EnhanceTable();}
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>{keepClean();setTimeout(keepClean,500);},{once:true});else keepClean();
-[1200,4200,6000].forEach(ms=>setTimeout(keepClean,ms));
-document.addEventListener('click',()=>setTimeout(keepClean,180),true);
-document.addEventListener('change',()=>setTimeout(keepClean,180),true);
+const prior=window.renderDefects;
+if(typeof prior==='function')window.renderDefects=function(){const r=prior.apply(this,arguments);[0,170,320].forEach(ms=>setTimeout(()=>{v84CleanTable();v84SortRows();},ms));return r;};
+function markV84(){
+ const sub=document.getElementById('pageSubtitle');if(sub){const base=(sub.textContent||'多專案工程缺失管理').replace(/\s*[·・]?\s*V\d+(?:\.\d+)?/ig,'');sub.textContent=base+' · V84';}
+ const cloud=document.querySelector('#cloudPanelV27 b');if(cloud)cloud.textContent='☁️ DH2 團隊雲端 · V84';
+ if(document.body)document.body.dataset.build='2026-09-22-v84-no-date-column-created-only';
+}
+function keep(){markV84();v84CleanTable();v84SortRows();}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>{keep();setTimeout(keep,500);},{once:true});else keep();
+[1200,4200,6500].forEach(ms=>setTimeout(keep,ms));
+document.addEventListener('click',()=>setTimeout(keep,220),true);
+document.addEventListener('change',()=>setTimeout(keep,220),true);
 })();
 </script>
