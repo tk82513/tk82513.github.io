@@ -501,11 +501,11 @@ main{max-width:980px;padding:8px 20px 160px}
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js" onerror="this.onerror=null;this.src='https://unpkg.com/jspdf@2.5.2/dist/jspdf.umd.min.js'"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js"></script>
 </head>
-<body data-build="2026-09-22-v88-safari-safe">
+<body data-build="2026-09-22-v91">
 <header>
 <div>
   <h1 id="pageTitle">我的工程</h1>
-  <div class="sub" id="pageSubtitle">多專案工程缺失管理 · V86</div>
+  <div class="sub" id="pageSubtitle">多專案工程缺失管理 · V91</div>
 </div>
 <button class="secondary" id="headerAction" onclick="openProject()">＋ 新增工程</button>
 </header>
@@ -5004,7 +5004,7 @@ if(typeof oldRenderDefects==='function'){
 
 function v64Lock(){
   const sub=document.getElementById('pageSubtitle');
-  if(sub)sub.textContent=(sub.textContent||'多專案工程缺失管理 · V86').replace(/V\d+(?:\.\d+)?/ig,'V73');
+  if(sub)sub.textContent=(sub.textContent||'多專案工程缺失管理 · V91').replace(/V\d+(?:\.\d+)?/ig,'V73');
   const cloud=document.querySelector('#cloudPanelV27 b');
   if(cloud)cloud.textContent='☁️ DH2 團隊雲端 · V90';
   if(document.body)document.body.dataset.build='2026-09-22-v74';
@@ -5093,7 +5093,7 @@ document.addEventListener('DOMContentLoaded',v65CompactClosedMeta);
 
 function v65Lock(){
   const sub=document.getElementById('pageSubtitle');
-  if(sub)sub.textContent=(sub.textContent||'多專案工程缺失管理 · V86').replace(/V\d+(?:\.\d+)?/ig,'V73');
+  if(sub)sub.textContent=(sub.textContent||'多專案工程缺失管理 · V91').replace(/V\d+(?:\.\d+)?/ig,'V73');
   const cloud=document.querySelector('#cloudPanelV27 b');
   if(cloud)cloud.textContent='☁️ DH2 團隊雲端 · V90';
   if(document.body)document.body.dataset.build='2026-09-22-v74';
@@ -5616,5 +5616,90 @@ function keep(){mark();apply()}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',keep,{once:true});else keep();
 /* V90: no document-wide MutationObserver. Safari-safe one-shot refreshes only. */
 [500,1200,2500,4500].forEach(ms=>setTimeout(()=>{mark();apply()},ms));
+})();
+</script>
+\n\n<!-- V91 FINAL: stable version label + direct PDF download for iOS Safari -->
+<script id="v91-final-pdf-version-fix">
+(function(){
+'use strict';
+const V91='V91';
+function lockVersionV91(){
+  const sub=document.getElementById('pageSubtitle');
+  if(sub){
+    const base=(sub.textContent||'多專案工程缺失管理').replace(/\\s*[·・]?\\s*V\\d+(?:\\.\\d+)?/ig,'').trim();
+    const wanted=base+' · '+V91;
+    if(sub.textContent!==wanted) sub.textContent=wanted;
+  }
+  const cloud=document.querySelector('#cloudPanelV27 b');
+  if(cloud && cloud.textContent!=='☁️ DH2 團隊雲端 · '+V91) cloud.textContent='☁️ DH2 團隊雲端 · '+V91;
+  if(document.body && document.body.dataset.build!=='2026-09-22-v91') document.body.dataset.build='2026-09-22-v91';
+}
+function reportItemsV91(){
+  try{if(typeof reportDefectsV40==='function')return reportDefectsV40();}catch(e){}
+  try{if(typeof filteredDefectsV34==='function')return filteredDefectsV34();}catch(e){}
+  const p=typeof project==='function'?project():null;
+  return Array.isArray(p?.defects)?p.defects:[];
+}
+function esc91(v){return String(v??'').replace(/[&<>\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[c]));}
+function safe91(v){return String(v||'DH2').replace(/[\\/:*?\"<>|]/g,'_').trim()||'DH2';}
+function photos91(x,key,fallback){
+  let a=Array.isArray(x?.[key])?x[key]:(fallback&&Array.isArray(x?.[fallback])?x[fallback]:[]);
+  return a.slice(0,2).map(u=>`<img src="${esc91(u)}" style="width:58px;height:44px;object-fit:contain;border:1px solid #ccc;border-radius:3px;background:#fff">`).join('');
+}
+function row91(x,no){
+  return `<tr style="break-inside:avoid;page-break-inside:avoid">
+  <td>${no}</td><td><b>${esc91(x.title||'')}</b></td><td>${esc91(x.area||'')}</td><td>${esc91(x.vendor||'')}</td>
+  <td>${esc91(x.createdByName||'舊資料')}</td><td>${esc91(x.created||'')}</td><td>${esc91(x.due||'')}</td>
+  <td><div style="display:flex;gap:2px;flex-wrap:wrap">${photos91(x,'defectPhotos','photos')}</div></td>
+  <td><div style="display:flex;gap:2px;flex-wrap:wrap">${photos91(x,'improvementPhotos')}</div></td>
+  <td>${esc91(x.improvementReply||x.improvement_reply||'')}</td></tr>`;
+}
+function page91(p,part,start,page,totalPages,total){
+  const rows=part.map((x,i)=>row91(x,start+i+1)).join('');
+  return `<section style="width:277mm;min-height:190mm;padding:7mm;background:#fff;color:#111;box-sizing:border-box;page-break-after:${page<totalPages?'always':'auto'}">
+   <div style="font-size:18px;font-weight:900;margin-bottom:4px">${esc91(p.name||'DH2')} 工程缺失管理</div>
+   <div style="font-size:9px;margin-bottom:6px">工程地址：${esc91(p.address||'')}　報表日期：${typeof localToday==='function'?localToday():''}　輸出：${total} 筆　頁次：${page} / ${totalPages}</div>
+   <table style="width:100%;border-collapse:collapse;table-layout:fixed;font-size:7.5px">
+   <thead><tr>${['序','缺失名稱','樓層／區域','工程別','起單人','起單日期','改善期限','缺失照片','改善照片','備註'].map((h,i)=>`<th style="border:1px solid #888;padding:3px;background:#eef2f2;${i===0?'width:4%':i===1?'width:17%':i===2?'width:11%':i===3?'width:9%':i===4?'width:8%':i===5||i===6?'width:10%':i===7||i===8?'width:12%':'width:7%'}">${h}</th>`).join('')}</tr></thead>
+   <tbody style="vertical-align:top">${rows}</tbody></table></section>`;
+}
+async function waitImgs91(root,ms=7000){
+ const imgs=[...root.querySelectorAll('img')]; if(!imgs.length)return;
+ await Promise.race([Promise.all(imgs.map(img=>img.complete?Promise.resolve():new Promise(r=>{img.onload=r;img.onerror=r;}))),new Promise(r=>setTimeout(r,ms))]);
+}
+function toast91(msg,stay=false){
+ let e=document.getElementById('v91toast');if(!e){e=document.createElement('div');e.id='v91toast';e.style.cssText='position:fixed;left:50%;top:18%;transform:translateX(-50%);z-index:1000000;background:#173f3b;color:#fff;padding:12px 18px;border-radius:12px;font-weight:800;box-shadow:0 6px 24px #0003;max-width:84vw;text-align:center';document.body.appendChild(e);}e.textContent=msg;e.style.display='block';clearTimeout(e._t);if(!stay)e._t=setTimeout(()=>e.style.display='none',2400);return e;
+}
+async function downloadPDFV91(){
+ const p=typeof project==='function'?project():null;if(!p)return alert('請先選擇工程。');
+ const items=reportItemsV91();if(!items.length)return alert('目前篩選結果沒有缺失可輸出。');
+ if(typeof html2pdf==='undefined')return alert('PDF 元件載入失敗，請重新整理頁面後再試。');
+ const btn=[...document.querySelectorAll('button')].find(b=>(b.textContent||'').includes('產生 PDF'));
+ if(btn){btn.disabled=true;btn.dataset.v91old=btn.textContent;btn.textContent='PDF 產生中…';}
+ const t=toast91(`正在整理 PDF（${items.length} 筆），請稍候…`,true);
+ let host;
+ try{
+   const per=10,totalPages=Math.ceil(items.length/per);
+   host=document.createElement('div');host.id='pdfV91Host';host.style.cssText='position:fixed;left:-20000px;top:0;width:297mm;background:#fff;z-index:-1';
+   let html='';for(let i=0;i<items.length;i+=per)html+=page91(p,items.slice(i,i+per),i,i/per+1,totalPages,items.length);
+   host.innerHTML=html;
+   host.querySelectorAll('td').forEach(td=>{td.style.border='1px solid #aaa';td.style.padding='3px';td.style.overflowWrap='anywhere';});
+   document.body.appendChild(host);await waitImgs91(host,8000);
+   t.textContent='正在產生 PDF 檔案…';
+   const filename=`${safe91(p.name)}_缺失報表_${typeof localToday==='function'?localToday():''}.pdf`;
+   await html2pdf().set({margin:0,filename,image:{type:'jpeg',quality:0.78},html2canvas:{scale:1,useCORS:true,allowTaint:true,logging:false,backgroundColor:'#ffffff'},jsPDF:{unit:'mm',format:'a4',orientation:'landscape'},pagebreak:{mode:['css','legacy']}}).from(host).save();
+   t.textContent='PDF 已產生';t._t=setTimeout(()=>t.style.display='none',1800);
+ }catch(e){console.error('V91 PDF',e);if(t)t.style.display='none';alert('PDF 產生失敗：'+(e?.message||e));}
+ finally{if(host)host.remove();if(btn){btn.disabled=false;btn.textContent=btn.dataset.v91old||'📄 產生 PDF';}}
+}
+function bindV91(){
+ lockVersionV91();
+ const pdf=[...document.querySelectorAll('button')].find(b=>(b.textContent||'').includes('產生 PDF'));
+ if(pdf && !pdf.dataset.v91bound){pdf.dataset.v91bound='1';const clone=pdf.cloneNode(true);clone.dataset.v91bound='1';clone.removeAttribute('onclick');clone.onclick=null;pdf.replaceWith(clone);clone.addEventListener('click',downloadPDFV91,{passive:false});}
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',bindV91,{once:true});else bindV91();
+setTimeout(bindV91,50);setTimeout(bindV91,1500);setTimeout(bindV91,4200);
+const mo=new MutationObserver(()=>lockVersionV91());
+if(document.documentElement)mo.observe(document.documentElement,{subtree:true,childList:true,characterData:true});
 })();
 </script>
