@@ -500,12 +500,32 @@ main{max-width:980px;padding:8px 20px 160px}
 <!-- V45: standalone jsPDF for canvas PDF export; fallback CDN if jsDelivr fails -->
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js" onerror="this.onerror=null;this.src='https://unpkg.com/jspdf@2.5.2/dist/jspdf.umd.min.js'"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js"></script>
+<style id="v94-print-pagination-fix">
+@media print{
+ @page{size:A4 landscape;margin:7mm 7mm 10mm 7mm!important}
+ #printReport{font-size:8px!important;padding:0!important;margin:0!important;width:100%!important}
+ #printReport .pdf-head-v94{margin:0 0 4px!important;break-inside:avoid!important;page-break-inside:avoid!important}
+ #printReport .pdf-head-v94 h1{font-size:15px!important;margin:0 0 3px!important}
+ #printReport .pdf-table-v94{width:100%!important;border-collapse:collapse!important;table-layout:fixed!important;margin:0!important}
+ #printReport .pdf-table-v94 thead{display:table-header-group!important}
+ #printReport .pdf-table-v94 tbody{display:table-row-group!important}
+ #printReport .pdf-table-v94 tr.pdf-row-v94{break-inside:avoid!important;page-break-inside:avoid!important;break-after:auto!important;page-break-after:auto!important}
+ #printReport .pdf-table-v94 th,#printReport .pdf-table-v94 td{padding:2.5px 3px!important;line-height:1.18!important;vertical-align:middle!important;break-inside:avoid!important;page-break-inside:avoid!important}
+ #printReport .pdf-table-v94 th:nth-child(1){width:4%} #printReport .pdf-table-v94 th:nth-child(2){width:18%}
+ #printReport .pdf-table-v94 th:nth-child(3){width:11%} #printReport .pdf-table-v94 th:nth-child(4){width:10%}
+ #printReport .pdf-table-v94 th:nth-child(5){width:8%} #printReport .pdf-table-v94 th:nth-child(6){width:10%}
+ #printReport .pdf-table-v94 th:nth-child(7){width:10%} #printReport .pdf-table-v94 th:nth-child(8){width:14.5%}
+ #printReport .pdf-table-v94 th:nth-child(9){width:14.5%}
+ #printReport .r-photo-group{display:flex!important;flex-wrap:wrap!important;gap:1px!important}
+ #printReport .r-photo{width:48px!important;height:36px!important;object-fit:cover!important;margin:0!important}
+}
+</style>
 </head>
-<body data-build="2026-09-22-v92">
+<body data-build="2026-09-22-v94">
 <header>
 <div>
   <h1 id="pageTitle">我的工程</h1>
-  <div class="sub" id="pageSubtitle">多專案工程缺失管理 · V92</div>
+  <div class="sub" id="pageSubtitle">多專案工程缺失管理 · V94</div>
 </div>
 <button class="secondary" id="headerAction" onclick="openProject()">＋ 新增工程</button>
 </header>
@@ -827,8 +847,9 @@ function setDefectViewMode(v){
 }
 let defectSortV36={key:'',dir:1};
 function toggleDefectSortV36(key){
-  if(defectSortV36.key===key) defectSortV36.dir*=-1;
-  else { defectSortV36.key=key; defectSortV36.dir=1; }
+  if(defectSortV36.key!==key){ defectSortV36={key:key,dir:1}; }
+  else if(defectSortV36.dir===1){ defectSortV36.dir=-1; }
+  else { defectSortV36={key:'',dir:1}; }
   renderDefects();
 }
 function defectNaturalCompareV36(a,b){
@@ -1909,47 +1930,63 @@ function generateExcel(){
   XLSX.writeFile(wb,`${safeName}_缺失報表_${localToday()}.xlsx`);
 }
 
+function getVisibleDefectsForReportV94(){
+  const p=project(); if(!p) return [];
+  const all=Array.isArray(p.defects)?p.defects:[];
+  const q=(document.getElementById('search')?.value||'').toLowerCase();
+  const f=document.getElementById('filter')?.value||'all';
+  const cf=document.getElementById('categoryFilter')?.value||'all';
+  const tf=document.getElementById('titleFilterV331')?.value||'all';
+  const af=document.getElementById('areaFilterV331')?.value||'all';
+  const crf=document.getElementById('creatorFilterV332')?.value||'all';
+  let rows=all.filter(x=>{
+    const creator=(x.createdByName||'舊資料').trim();
+    const hit=((x.title||'')+' '+(x.area||'')+' '+(x.vendor||'')+' '+creator+' '+(x.category||'其他')+' '+(x.desc||'')).toLowerCase().includes(q);
+    return hit&&(f==='all'||x.status===f)&&(cf==='all'||(x.category||'其他')===cf)
+      &&(tf==='all'||(x.title||'').trim()===tf)&&(af==='all'||(x.area||'').trim()===af)
+      &&(crf==='all'||creator===crf);
+  });
+  if(defectSortV36.key){
+    const dir=defectSortV36.dir;
+    rows=rows.slice().sort((a,b)=>{
+      const cmp=defectSortV36.key==='area'?compareAreaV36(a.area,b.area):defectNaturalCompareV36(a.title,b.title);
+      return cmp*dir;
+    });
+  }
+  return rows;
+}
+
 function generatePDF(){
   const p=project();
-  const pending=p.defects.filter(x=>x.status==='pending').length;
-  const doing=p.defects.filter(x=>x.status==='doing').length;
-  const closed=p.defects.filter(x=>x.status==='closed').length;
-  const overdue=p.defects.filter(x=>x.due && new Date(x.due)<new Date() && x.status!=='closed').length;
-  const rows=p.defects.map((x,i)=>{
-    const dArr=Array.isArray(x&&x.defectPhotos)?x.defectPhotos:(Array.isArray(x&&x.photos)?x.photos:[]);
-    const iArr=Array.isArray(x&&x.improvementPhotos)?x.improvementPhotos:[];
+  if(!p){alert('請先選擇工程。');return;}
+  const defects=getVisibleDefectsForReportV94();
+  if(!defects.length){alert('目前篩選結果沒有缺失可輸出。');return;}
+  const pending=defects.filter(x=>x.status==='pending').length;
+  const doing=defects.filter(x=>x.status==='doing').length;
+  const closed=defects.filter(x=>x.status==='closed').length;
+  const today=localToday();
+  const overdue=defects.filter(x=>x.due && x.due<today && x.status!=='closed').length;
+  const rows=defects.map((x,i)=>{
+    const dArr=Array.isArray(x.defectPhotos)?x.defectPhotos:(Array.isArray(x.photos)?x.photos:[]);
+    const iArr=Array.isArray(x.improvementPhotos)?x.improvementPhotos:[];
     const dphotos=dArr.map(ph=>`<img class="r-photo" src="${ph}">`).join('');
     const iphotos=iArr.map(ph=>`<img class="r-photo" src="${ph}">`).join('');
-    const photos=`缺失相片：${dphotos||'無'}<br>改善相片：${iphotos||'無'}`;
-    return `<tr>
-      <td>${i+1}</td>
-      <td>${esc(x.title)}</td>
-      <td>${esc(x.area||'')}</td>
-      <td>${esc(x.category||'其他')}</td>
-      <td>${esc(x.vendor||'')}</td>
-      <td>${esc(x.level||'')}</td>
-      <td>${esc(statusText[x.status]||x.status)}</td>
-      <td>${x.created||''}</td>
-      <td>${x.due||''}</td>
-      <td>${esc(x.desc||'')}</td>
-      <td>${photos||'無'}</td>
+    return `<tr class="pdf-row-v94">
+      <td>${i+1}</td><td>${esc(x.title)}</td><td>${esc(x.area||'')}</td><td>${esc(x.vendor||'')}</td>
+      <td>${esc(x.createdByName||'舊資料')}</td><td>${esc(x.created||'')}</td><td>${esc(x.due||'')}</td>
+      <td><div class="r-photo-group">${dphotos||'<span class="r-no-photo">無</span>'}</div></td>
+      <td><div class="r-photo-group">${iphotos||'<span class="r-no-photo">無</span>'}</div></td>
     </tr>`;
   }).join('');
-  document.getElementById('printReport').innerHTML=`
-    <h1>${esc(p.name)} 工程缺失改善管制報表</h1>
-    <div>工程案號：${esc(p.no||'')}</div>
-    <div>工程地址：${esc(p.address||'')}</div>
-    <div>業主／建設公司：${esc(p.owner||'')}</div>
-    <div>營造公司：${esc(p.builder||'')}</div>
-    <div>報表日期：${new Date().toISOString().slice(0,10)}</div>
-    <h2>統計</h2>
-    <div>總缺失：${p.defects.length}　待處理：${pending}　進行中：${doing}　已關閉：${closed}　逾期：${overdue}</div>
-    <h2>缺失明細</h2>
-    <table class="r-table">
-      <thead><tr><th>#</th><th>缺失</th><th>位置</th><th>分類</th><th>廠商</th><th>等級</th><th>狀態</th><th>起單日期</th><th>改善期限</th><th>說明</th><th>照片</th></tr></thead>
-      <tbody>${rows}</tbody>
-    </table>`;
-  setTimeout(()=>window.print(),300);
+  const report=document.getElementById('printReport');
+  report.innerHTML=`<div class="pdf-head-v94"><h1>${esc(p.name)} 工程缺失管理</h1>
+    <div>工程地址：${esc(p.address||'')}　報表日期：${today}　輸出：${defects.length} 筆　待處理：${pending}　進行中：${doing}　已關閉：${closed}　逾期：${overdue}</div></div>
+    <table class="r-table pdf-table-v94"><thead><tr><th>#</th><th>缺失名稱</th><th>樓層／區域</th><th>負責廠商</th><th>起單人</th><th>起單日期</th><th>改善期限</th><th>缺失照片</th><th>改善照片</th></tr></thead><tbody>${rows}</tbody></table>`;
+  document.body.classList.add('printing-v94');
+  const imgs=[...report.querySelectorAll('img')];
+  Promise.all(imgs.map(img=>img.complete?Promise.resolve():new Promise(r=>{img.onload=img.onerror=r;}))).then(()=>{
+    setTimeout(()=>{window.print();setTimeout(()=>document.body.classList.remove('printing-v94'),800);},150);
+  });
 }
 
 function setStatus(status){
