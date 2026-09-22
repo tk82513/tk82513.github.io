@@ -5323,6 +5323,73 @@ setTimeout(markV78,4000);
 })();
 </script>
 
+
+
+<!-- V82 FINAL: closed defects sort by latest improvement upload timestamp, newest first -->
+<style id="v82-closed-sort-style">
+.date-separator-v82 td{background:#edf7f4!important;color:#315e56!important;font-weight:900!important;}
+</style>
+<script id="v82-closed-sort-final">
+(function(){
+'use strict';
+function dateOnly(v){const m=String(v||'').match(/\d{4}-\d{2}-\d{2}/);return m?m[0]:'';}
+function timeValue(v){if(!v)return 0;const t=Date.parse(v);return Number.isFinite(t)?t:0;}
+function latestImproveTime(x){
+  const metas=Array.isArray(x?.improvementPhotoMeta)?x.improvementPhotoMeta:[];
+  const ts=metas.map(m=>timeValue(m?.createdAt||m?.created_at||m?.uploadedAt||m?.uploaded_at)).filter(Boolean);
+  if(ts.length)return Math.max(...ts);
+  const raw=x?.closedAt||x?.closed_at||x?.updatedAt||x?.updated_at||x?.completedAt||x?.completed_at||x?.replyAt||x?.reply_at||x?.closedDate||x?.closed_date||x?.completedDate||x?.completed_date||x?.replyDate||x?.reply_date;
+  return timeValue(raw);
+}
+function replyDate(x){
+  const t=latestImproveTime(x);
+  if(t){const d=new Date(t);return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
+  return dateOnly(x?.closedDate||x?.closed_date||x?.completedDate||x?.completed_date||x?.replyDate||x?.reply_date);
+}
+function closedOnly(){
+  try{if(typeof selected!=='undefined'&&selected?.filter instanceof Set)return selected.filter.size===1&&selected.filter.has('closed');}catch(_){}
+  return document.getElementById('filter')?.value==='closed';
+}
+function rebuild(){
+  if(!closedOnly())return;
+  const p=typeof project==='function'?project():null;
+  const tbody=document.querySelector('#list .defect-table-v12 tbody');
+  if(!p||!tbody)return;
+  tbody.querySelectorAll('.date-separator-v35,.date-separator-v80,.date-separator-v82').forEach(e=>e.remove());
+  const rows=[...tbody.querySelectorAll(':scope > tr')].filter(r=>r.querySelector('.defect-select'));
+  rows.sort((ra,rb)=>{
+    const ia=ra.querySelector('.defect-select')?.dataset?.id, ib=rb.querySelector('.defect-select')?.dataset?.id;
+    const a=p.defects?.find(x=>String(x.id)===String(ia)), b=p.defects?.find(x=>String(x.id)===String(ib));
+    const at=latestImproveTime(a), bt=latestImproveTime(b);
+    if(at!==bt)return bt-at; // newest first, including same-day upload time
+    return String(b?.id||'').localeCompare(String(a?.id||''),undefined,{numeric:true});
+  });
+  rows.forEach(r=>tbody.appendChild(r));
+  let prev='';
+  rows.forEach(row=>{
+    const id=row.querySelector('.defect-select')?.dataset?.id;
+    const x=p.defects?.find(a=>String(a.id)===String(id));
+    const d=replyDate(x)||'無回覆日期';
+    if(d!==prev){
+      const sep=document.createElement('tr');sep.className='date-separator-v82';
+      sep.innerHTML=`<td colspan="5">改善回覆日期：${d}</td>`;
+      row.before(sep);prev=d;
+    }
+  });
+}
+const prior=window.renderDefects;
+if(typeof prior==='function')window.renderDefects=function(){const r=prior.apply(this,arguments);setTimeout(rebuild,0);setTimeout(rebuild,80);return r;};
+function mark(){
+ const sub=document.getElementById('pageSubtitle');if(sub){const base=(sub.textContent||'多專案工程缺失管理').replace(/\s*[·・]?\s*V\d+(?:\.\d+)?/ig,'');sub.textContent=base+' · V82';}
+ if(document.body)document.body.dataset.build='2026-09-22-v82-closed-newest-first';
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>{mark();setTimeout(rebuild,100);},{once:true});else{mark();setTimeout(rebuild,100);}
+document.addEventListener('click',()=>setTimeout(rebuild,120),true);
+document.addEventListener('change',()=>setTimeout(rebuild,120),true);
+setTimeout(mark,4500);
+})();
+</script>
+
 </body></html>
 
 
