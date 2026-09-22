@@ -501,11 +501,11 @@ main{max-width:980px;padding:8px 20px 160px}
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js" onerror="this.onerror=null;this.src='https://unpkg.com/jspdf@2.5.2/dist/jspdf.umd.min.js'"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js"></script>
 </head>
-<body data-build="2026-09-22-v75-uploader-status-fix">
+<body data-build="2026-09-22-v76-uploader-status-fix">
 <header>
 <div>
   <h1 id="pageTitle">我的工程</h1>
-  <div class="sub" id="pageSubtitle">多專案工程缺失管理 · V75</div>
+  <div class="sub" id="pageSubtitle">多專案工程缺失管理 · V76</div>
 </div>
 <button class="secondary" id="headerAction" onclick="openProject()">＋ 新增工程</button>
 </header>
@@ -653,7 +653,7 @@ main{max-width:980px;padding:8px 20px 160px}
 <input id="fImprovePhotos" type="file" accept="image/*" multiple>
 <div id="improvePreview" class="photo-grid"></div>
 <div id="photoUploadProgressV34" class="photo-upload-progress-v34"></div>
-<div id="statusBlockV75" style="margin:22px 0 12px;padding:16px;border:2px solid #19796e;border-radius:16px;background:#eef8f5">
+<div id="statusBlockV76" style="margin:22px 0 12px;padding:16px;border:2px solid #19796e;border-radius:16px;background:#eef8f5">
   <label for="fStatus" style="margin:0 0 9px;color:#11665d;font-size:16px;font-weight:900">缺失狀態</label>
   <select id="fStatus" style="height:54px;font-size:17px;font-weight:800;border:2px solid #9ccfc5;background:#fff">
     <option value="pending">🔴 待處理</option><option value="doing">🟠 進行中</option><option value="closed">🟢 已關閉</option>
@@ -1744,7 +1744,7 @@ function saveDefect(){
     improvementPhotos:[...tempImprovePhotos]
   };
   if(editId) p.defects=p.defects.map(a=>String(a.id)===String(editId)?x:a); else {
-    if(cloudProfileV27){x.createdBy=cloudProfileV27.id;x.createdByName=cloudProfileV27.display_name||cloudProfileV27.username||'未命名';}
+    if(cloudProfileV27){x.createdBy=cloudProfileV27.id;x.createdByName=cloudProfileV27.display_name||cloudProfileV27.username||'舊資料';}
     p.defects.push(x);
   }
   if(!save()){
@@ -2152,8 +2152,8 @@ async function cloudLoadAllV27(){
     dh2Cloud.from('profiles').select('id,display_name,username')
    ]);
    if(pe||de||phe||pre){setCloudStatusV27('同步失敗：'+(pe||de||phe||pre).message);return;}
-   const profileMap=Object.fromEntries((profiles||[]).map(p=>[p.id,p.display_name||p.username||'未命名']));
-    if(cloudProfileV27?.id) profileMap[cloudProfileV27.id]=cloudProfileV27.display_name||cloudProfileV27.username||profileMap[cloudProfileV27.id]||'未命名';
+   const profileMap=Object.fromEntries((profiles||[]).map(p=>[p.id,p.display_name||p.username||'舊資料']));
+    if(cloudProfileV27?.id) profileMap[cloudProfileV27.id]=cloudProfileV27.display_name||cloudProfileV27.username||profileMap[cloudProfileV27.id]||'舊資料';
     let localPhotoMetaV74={};try{localPhotoMetaV74=JSON.parse(localStorage.getItem('dh2_photo_meta_v73')||'{}')}catch(_){}
    if(!projects?.length){
     state={current:null,projects:[]};
@@ -2185,7 +2185,7 @@ async function cloudLoadAllV27(){
        const cachedMeta=localPhotoMetaV74[ph.storage_path]||{};
         if(!uploaderId) uploaderId=cachedMeta.uploaded_by||'';
         if(!uploaderName) uploaderName=profileMap[uploaderId]||cachedMeta.uploaded_name||'';
-        // V75 repair: V74 accidentally wrote uploaderId as 'unknown' because a top-level let was read through window.
+        // V76 repair: V74 accidentally wrote uploaderId as 'unknown' because a top-level let was read through window.
         // For those broken records, use the currently authenticated profile instead of showing 未命名.
         if((!uploaderName || uploaderName==='未命名') && (uploaderId==='unknown' || !uploaderId) && cloudProfileV27){
           uploaderId=cloudProfileV27.id||uploaderId;
@@ -2200,7 +2200,7 @@ async function cloudLoadAllV27(){
    const next={current:nextCurrent,projects:projects.map(p=>({
      id:p.id,cloudId:p.id,name:p.name,no:p.no||'',address:p.address||'',owner:p.owner||'',builder:p.builder||'',start:'',end:'',
      defects:(defects||[]).filter(d=>d.project_id===p.id).map(d=>({
-       id:d.id,cloudId:d.id,title:d.title,area:d.area||'',level:d.severity||'中',status:d.status||'pending',category:d.category||'其他',vendor:d.vendor||'',created:d.created_date||'',createdAt:((photoMap[d.id]||[]).map(x=>x.createdAt).filter(Boolean).sort()[0]||''),due:d.due_date||'',desc:d.description||'',improvementReply:d.improvement_reply||'',createdBy:d.created_by||null,createdByName:d.created_by?(profileMap[d.created_by]||'未命名'):'舊資料',
+       id:d.id,cloudId:d.id,title:d.title,area:d.area||'',level:d.severity||'中',status:d.status||'pending',category:d.category||'其他',vendor:d.vendor||'',created:d.created_date||'',createdAt:((photoMap[d.id]||[]).map(x=>x.createdAt).filter(Boolean).sort()[0]||''),due:d.due_date||'',desc:d.description||'',improvementReply:d.improvement_reply||'',createdBy:d.created_by||null,createdByName:d.created_by?(profileMap[d.created_by]||'舊資料'):'舊資料',
        defectPhotos:(photoMap[d.id]||[]).filter(x=>x.type==='defect').map(x=>x.url),
        improvementPhotos:(photoMap[d.id]||[]).filter(x=>x.type==='improvement').map(x=>x.url), improvementPhotoMeta:(photoMap[d.id]||[]).filter(x=>x.type==='improvement').map(x=>({id:x.id,path:x.path,url:x.url,createdAt:x.createdAt||'',uploaderId:x.uploaderId||'',uploaderName:x.uploaderName||''}))
      }))
@@ -2329,7 +2329,7 @@ async function adminCreateAccountV29(){
  const btn=document.getElementById('createMemberBtnV29');btn.disabled=true;btn.textContent='建立中…';
  try{
    const internalEmail=`${username}@dh2.local`;
-   const {data,error}=await dh2Cloud.functions.invoke('admin-create-user',{body:{username,email:internalEmail,password,display_name,role,vendor_name}});
+   const {data,error}=await dh2Cloud.functions.invoke('admin-create-user',{headers:{Authorization:`Bearer ${(await dh2Cloud.auth.getSession()).data.session?.access_token||''}`},body:{username,email:internalEmail,password,display_name,role,vendor_name}});
    if(error){
      let detail='';
      try{detail=await error.context?.text?.()||'';}catch(_){}
@@ -2571,7 +2571,7 @@ async function uploadPhotoCloudV34(projectId,defectId,type,dataUrl){
         const meta=JSON.parse(localStorage.getItem(metaKey)||'{}');
         meta[path]={
           uploaded_by: cloudProfileV27?.id||'',
-          uploaded_name: cloudProfileV27?.display_name||cloudProfileV27?.username||'未命名',
+          uploaded_name: cloudProfileV27?.display_name||cloudProfileV27?.username||'舊資料',
           uploaded_at: new Date().toISOString()
         };
         localStorage.setItem(metaKey,JSON.stringify(meta));
@@ -2972,7 +2972,7 @@ async function v344PersistOne(p,item,parsed,createdDate,defaultDue){
     defectPhotos:photoUrl?[photoUrl]:[],
     improvementPhotos:[],
     createdBy:cloudProfileV27?.id||null,
-    createdByName:cloudProfileV27?.display_name||cloudProfileV27?.username||'未命名'
+    createdByName:cloudProfileV27?.display_name||cloudProfileV27?.username||'舊資料'
   });
   saveMetadataOnlyV34?.();
   renderDefects();renderProjects();
@@ -4786,7 +4786,7 @@ window.generatePDF=async function(){
 <script id="v63-real-height-pagination-script">
 (function(){
 'use strict';
-function setV68(){const sub=document.getElementById('pageSubtitle');if(sub)sub.textContent=(sub.textContent||'多專案工程缺失管理').replace(/V\d+(?:\.\d+)?/i,'V73');const cloud=document.querySelector('#cloudPanelV27 b');if(cloud)cloud.textContent='☁️ DH2 團隊雲端 · V75';document.body.dataset.build='2026-09-22-v74';}
+function setV68(){const sub=document.getElementById('pageSubtitle');if(sub)sub.textContent=(sub.textContent||'多專案工程缺失管理').replace(/V\d+(?:\.\d+)?/i,'V73');const cloud=document.querySelector('#cloudPanelV27 b');if(cloud)cloud.textContent='☁️ DH2 團隊雲端 · V76';document.body.dataset.build='2026-09-22-v74';}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',setV68);else setV68();setTimeout(setV68,700);setTimeout(setV68,1800);
 function items51(){if(typeof reportDefectsV40==='function')return reportDefectsV40();if(typeof filteredDefectsV34==='function')return filteredDefectsV34();return project()?.defects||[];}
 function arr51(x,k,f){return Array.isArray(x&&x[k])?x[k]:(f&&Array.isArray(x&&x[f])?x[f]:[]);}
@@ -4824,7 +4824,7 @@ window.generatePDF=async function(){
   'use strict';
   function lockV68(){
     var cloud=document.querySelector('#cloudPanelV27 b');
-    if(cloud && cloud.textContent!=='☁️ DH2 團隊雲端 · V75') cloud.textContent='☁️ DH2 團隊雲端 · V75';
+    if(cloud && cloud.textContent!=='☁️ DH2 團隊雲端 · V76') cloud.textContent='☁️ DH2 團隊雲端 · V76';
     var sub=document.getElementById('pageSubtitle');
     if(sub && /V\d+(?:\.\d+)?/i.test(sub.textContent||'')) sub.textContent=(sub.textContent||'').replace(/V\d+(?:\.\d+)?/ig,'V73');
     if(document.body) document.body.dataset.build='2026-09-22-v74';
@@ -4996,7 +4996,7 @@ function v64Lock(){
   const sub=document.getElementById('pageSubtitle');
   if(sub)sub.textContent=(sub.textContent||'多專案工程缺失管理 · V73').replace(/V\d+(?:\.\d+)?/ig,'V73');
   const cloud=document.querySelector('#cloudPanelV27 b');
-  if(cloud)cloud.textContent='☁️ DH2 團隊雲端 · V75';
+  if(cloud)cloud.textContent='☁️ DH2 團隊雲端 · V76';
   if(document.body)document.body.dataset.build='2026-09-22-v74';
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',v64Lock);else v64Lock();
@@ -5085,7 +5085,7 @@ function v65Lock(){
   const sub=document.getElementById('pageSubtitle');
   if(sub)sub.textContent=(sub.textContent||'多專案工程缺失管理 · V73').replace(/V\d+(?:\.\d+)?/ig,'V73');
   const cloud=document.querySelector('#cloudPanelV27 b');
-  if(cloud)cloud.textContent='☁️ DH2 團隊雲端 · V75';
+  if(cloud)cloud.textContent='☁️ DH2 團隊雲端 · V76';
   if(document.body)document.body.dataset.build='2026-09-22-v74';
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',v65Lock);else v65Lock();
@@ -5107,7 +5107,7 @@ function lockV68(){
       : t+' · V73';
   }
   const cloud=document.querySelector('#cloudPanelV27 b');
-  if(cloud)cloud.textContent='☁️ DH2 團隊雲端 · V75';
+  if(cloud)cloud.textContent='☁️ DH2 團隊雲端 · V76';
   if(document.body)document.body.dataset.build='2026-09-22-v74';
 }
 if(document.readyState==='loading'){
@@ -5126,9 +5126,9 @@ setTimeout(lockV68,1200);
 (function(){
   function showV68(){
     const sub=document.getElementById('pageSubtitle');
-    if(sub){const base=(sub.textContent||'多專案工程缺失管理').replace(/\s*[·・]?\s*V\d+(?:\.\d+)?/ig,'');sub.textContent=base+' · V75';}
+    if(sub){const base=(sub.textContent||'多專案工程缺失管理').replace(/\s*[·・]?\s*V\d+(?:\.\d+)?/ig,'');sub.textContent=base+' · V76';}
     const cloud=document.querySelector('#cloudPanelV27 b');
-    if(cloud)cloud.textContent='☁️ DH2 團隊雲端 · V75';
+    if(cloud)cloud.textContent='☁️ DH2 團隊雲端 · V76';
     if(document.body)document.body.dataset.build='2026-09-22-v74';
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',showV68,{once:true});else showV68();
@@ -5242,8 +5242,8 @@ document.addEventListener('click',()=>setTimeout(detailMetaV73,30),true);
 
 function showV73(){
   const sub=document.getElementById('pageSubtitle');
-  if(sub){const base=(sub.textContent||'多專案工程缺失管理').replace(/\s*[·・]?\s*V\d+(?:\.\d+)?/ig,'');sub.textContent=base+' · V75';}
-  const cloud=document.querySelector('#cloudPanelV27 b');if(cloud)cloud.textContent='☁️ DH2 團隊雲端 · V75';
+  if(sub){const base=(sub.textContent||'多專案工程缺失管理').replace(/\s*[·・]?\s*V\d+(?:\.\d+)?/ig,'');sub.textContent=base+' · V76';}
+  const cloud=document.querySelector('#cloudPanelV27 b');if(cloud)cloud.textContent='☁️ DH2 團隊雲端 · V76';
   if(document.body)document.body.dataset.build='2026-09-22-v74';
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>{showV73();setTimeout(rebuildClosedMetaV73,0);},{once:true});else{showV73();setTimeout(rebuildClosedMetaV73,0);}
@@ -5259,12 +5259,12 @@ setTimeout(showV73,3500);
 })();
 </script>
 
-<!-- V75: fix uploader scope + prominent bottom status selector -->
-<script id="v75-final-version">
+<!-- V76: fix uploader scope + prominent bottom status selector -->
+<script id="v76-final-version">
 (function(){
  function mark(){
-  const sub=document.getElementById('pageSubtitle'); if(sub){const base=(sub.textContent||'多專案工程缺失管理').replace(/\s*[·・]?\s*V\d+(?:\.\d+)?/ig,'');sub.textContent=base+' · V75';}
-  const cloud=document.querySelector('#cloudPanelV27 b');if(cloud)cloud.textContent='☁️ DH2 團隊雲端 · V75';
+  const sub=document.getElementById('pageSubtitle'); if(sub){const base=(sub.textContent||'多專案工程缺失管理').replace(/\s*[·・]?\s*V\d+(?:\.\d+)?/ig,'');sub.textContent=base+' · V76';}
+  const cloud=document.querySelector('#cloudPanelV27 b');if(cloud)cloud.textContent='☁️ DH2 團隊雲端 · V76';
  }
  mark();setTimeout(mark,1200);setTimeout(mark,4000);
 })();
