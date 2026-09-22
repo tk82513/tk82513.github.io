@@ -5390,6 +5390,93 @@ setTimeout(mark,4500);
 })();
 </script>
 
+
+
+<!-- V85 FINAL: title shortcut = date sort cycle (default -> newest -> oldest -> default) -->
+<script id="v85-date-sort-cycle">
+(function(){
+'use strict';
+let dateModeV85=0; // 0=預設, 1=新到舊, 2=舊到新
+
+function parseTimeV85(v){
+ if(!v)return 0;
+ const t=Date.parse(v); return Number.isFinite(t)?t:0;
+}
+function createdTimeV85(x){
+ return parseTimeV85(x?.createdAt||x?.created_at||x?.created||x?.created_date);
+}
+function improveTimeV85(x){
+ const metas=Array.isArray(x?.improvementPhotoMeta)?x.improvementPhotoMeta:[];
+ const ts=metas.map(m=>parseTimeV85(m?.createdAt||m?.created_at||m?.uploadedAt||m?.uploaded_at)).filter(Boolean);
+ if(ts.length)return Math.max(...ts);
+ return parseTimeV85(x?.closedAt||x?.closed_at||x?.updatedAt||x?.updated_at||x?.completedAt||x?.completed_at||x?.replyAt||x?.reply_at||x?.closedDate||x?.closed_date||x?.completedDate||x?.completed_date||x?.replyDate||x?.reply_date);
+}
+function activeStatusV85(){ return document.getElementById('filter')?.value||'all'; }
+function sortTimeV85(x){ return activeStatusV85()==='closed'?improveTimeV85(x):createdTimeV85(x); }
+
+// 原「缺失名稱」排序鍵改成日期三段循環。
+window.toggleDefectSortV36=function(key){
+ if(key==='title'){
+   dateModeV85=(dateModeV85+1)%3;
+   if(window.defectSortV36){ window.defectSortV36.key=''; window.defectSortV36.dir=1; }
+   if(typeof renderDefects==='function')renderDefects();
+   return;
+ }
+ dateModeV85=0;
+ if(window.defectSortV36){
+   if(window.defectSortV36.key===key) window.defectSortV36.dir*=-1;
+   else { window.defectSortV36.key=key; window.defectSortV36.dir=1; }
+ }
+ if(typeof renderDefects==='function')renderDefects();
+};
+
+function applyV85(){
+ const table=document.querySelector('#list .defect-table-v12');
+ const p=typeof project==='function'?project():null;
+ if(!table||!p)return;
+ table.querySelectorAll('.date-separator-v35,.date-separator-v80,.date-separator-v82').forEach(e=>e.remove());
+ const ths=table.tHead?.rows?.[0]?.cells;
+ if(ths&&ths[1]){
+   const label=dateModeV85===0?'↕':(dateModeV85===1?'↓':'↑');
+   ths[1].innerHTML=`缺失名稱 <span class="sort-arrow-v36">${label}</span>`;
+   ths[1].classList.toggle('active',dateModeV85!==0);
+   ths[1].onclick=()=>window.toggleDefectSortV36('title');
+   ths[1].title=activeStatusV85()==='closed'?'改善日期排序：新到舊／舊到新／預設':'起單日期排序：新到舊／舊到新／預設';
+ }
+ const tbody=table.tBodies?.[0]; if(!tbody)return;
+ const rows=[...tbody.rows].filter(r=>r.querySelector('.defect-select'));
+ const index=new Map((p.defects||[]).map((x,i)=>[String(x.id),i]));
+ rows.sort((ra,rb)=>{
+   const ia=String(ra.querySelector('.defect-select')?.dataset?.id||'');
+   const ib=String(rb.querySelector('.defect-select')?.dataset?.id||'');
+   const a=(p.defects||[]).find(x=>String(x.id)===ia), b=(p.defects||[]).find(x=>String(x.id)===ib);
+   if(dateModeV85){
+     const at=sortTimeV85(a),bt=sortTimeV85(b);
+     if(at!==bt)return dateModeV85===1?bt-at:at-bt;
+     // 同一天/同時間：新到舊時較新的建單/照片仍優先；舊到新反向。
+     const aid=Number(a?.id),bid=Number(b?.id);
+     if(Number.isFinite(aid)&&Number.isFinite(bid)&&aid!==bid)return dateModeV85===1?bid-aid:aid-bid;
+   }
+   // 預設：回到工程原始資料順序。
+   return (index.get(ia)??0)-(index.get(ib)??0);
+ });
+ rows.forEach(r=>tbody.appendChild(r));
+}
+function markV85(){
+ const sub=document.getElementById('pageSubtitle');
+ if(sub){const base=(sub.textContent||'多專案工程缺失管理').replace(/\s*[·・]?\s*V\d+(?:\.\d+)?/ig,'');sub.textContent=base+' · V85';}
+ const cloud=document.querySelector('#cloudPanelV27 b');if(cloud)cloud.textContent='☁️ DH2 團隊雲端 · V85';
+ if(document.body)document.body.dataset.build='2026-09-22-v85-date-sort-cycle';
+}
+function keepV85(){markV85();applyV85();}
+const priorRender=window.renderDefects;
+if(typeof priorRender==='function')window.renderDefects=function(){const r=priorRender.apply(this,arguments);[0,120,260,500].forEach(ms=>setTimeout(keepV85,ms));return r;};
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>{keepV85();setTimeout(keepV85,700);},{once:true});else keepV85();
+[1200,4500,7000].forEach(ms=>setTimeout(keepV85,ms));
+document.addEventListener('click',()=>setTimeout(keepV85,300),true);
+document.addEventListener('change',()=>setTimeout(keepV85,300),true);
+})();
+</script>
 </body></html>
 
 
