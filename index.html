@@ -2159,7 +2159,16 @@ async function cloudLoadAllV27(){
    const photoMap={};
    for(const ph of photos||[]){
      const url=signedMap[ph.storage_path]||''; if(!url)continue;
-     (photoMap[ph.defect_id]??=[]).push({id:ph.id||'',type:ph.photo_type,url,path:ph.storage_path||'',createdAt:ph.created_at||''});
+     {
+       const fn=String(ph.storage_path||'').split('/').pop()||'';
+       const mm=fn.match(/^\d+__([^_]+)__([^_]+)_/);
+       let uploaderId='',uploaderName='';
+       if(mm){
+         uploaderId=mm[1]||'';
+         try{uploaderName=decodeURIComponent((mm[2]||'').replace(/~/g,'%'));}catch(_){uploaderName=mm[2]||'';}
+       }
+       (photoMap[ph.defect_id]??=[]).push({id:ph.id||'',type:ph.photo_type,url,path:ph.storage_path||'',createdAt:ph.created_at||'',uploaderId,uploaderName});
+     }
    }
    const previousProjectId=state?.current||null;
    const validProjectIds=new Set((projects||[]).map(p=>String(p.id)));
@@ -2169,7 +2178,7 @@ async function cloudLoadAllV27(){
      defects:(defects||[]).filter(d=>d.project_id===p.id).map(d=>({
        id:d.id,cloudId:d.id,title:d.title,area:d.area||'',level:d.severity||'中',status:d.status||'pending',category:d.category||'其他',vendor:d.vendor||'',created:d.created_date||'',createdAt:((photoMap[d.id]||[]).map(x=>x.createdAt).filter(Boolean).sort()[0]||''),due:d.due_date||'',desc:d.description||'',improvementReply:d.improvement_reply||'',createdBy:d.created_by||null,createdByName:d.created_by?(profileMap[d.created_by]||'未命名'):'舊資料',
        defectPhotos:(photoMap[d.id]||[]).filter(x=>x.type==='defect').map(x=>x.url),
-       improvementPhotos:(photoMap[d.id]||[]).filter(x=>x.type==='improvement').map(x=>x.url), improvementPhotoMeta:(photoMap[d.id]||[]).filter(x=>x.type==='improvement').map(x=>({id:x.id,path:x.path,url:x.url}))
+       improvementPhotos:(photoMap[d.id]||[]).filter(x=>x.type==='improvement').map(x=>x.url), improvementPhotoMeta:(photoMap[d.id]||[]).filter(x=>x.type==='improvement').map(x=>({id:x.id,path:x.path,url:x.url,createdAt:x.createdAt||'',uploaderId:x.uploaderId||'',uploaderName:x.uploaderName||''}))
      }))
    }))};
    state=next;originalSaveV27();cloudLoadedV27=true;render();
@@ -2183,7 +2192,9 @@ async function cloudLoadAllV27(){
 async function uploadPhotoV27(projectId,defectId,type,dataUrl){
  if(!String(dataUrl).startsWith('data:'))return null;
  const ext=(dataUrl.match(/^data:image\/([^;]+)/)||[])[1]?.replace('jpeg','jpg')||'jpg';
- const path=`${projectId}/${defectId}/${type}/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+ const uploaderId=(window.cloudProfileV27?.id||'unknown').toString().replace(/[^a-zA-Z0-9-]/g,'');
+ const uploaderName=encodeURIComponent(window.cloudProfileV27?.display_name||window.cloudProfileV27?.username||'未命名').replace(/%/g,'~');
+ const path=`${projectId}/${defectId}/${type}/${Date.now()}__${uploaderId}__${uploaderName}_${Math.random().toString(36).slice(2)}.${ext}`;
  const {error}=await dh2Cloud.storage.from('defect-photos').upload(path,dataUrlToBlobV27(dataUrl),{contentType:'image/'+(ext==='jpg'?'jpeg':ext),upsert:false});
  if(error)throw error;
  const {error:ie}=await dh2Cloud.from('defect_photos').insert({defect_id:defectId,photo_type:type==='improvement'?'improvement':'defect',storage_path:path});
@@ -2476,7 +2487,9 @@ async function uploadPhotoCloudV34(projectId,defectId,type,dataUrl){
   if(!isDataImageV34(dataUrl))return {url:dataUrl,path:null};
   const mime=(dataUrl.match(/^data:(image\/[^;]+)/)||[])[1]||'image/jpeg';
   const ext=(mime.split('/')[1]||'jpeg').replace('jpeg','jpg');
-  const path=`${projectId}/${defectId}/${type}/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+  const uploaderId=(window.cloudProfileV27?.id||'unknown').toString().replace(/[^a-zA-Z0-9-]/g,'');
+ const uploaderName=encodeURIComponent(window.cloudProfileV27?.display_name||window.cloudProfileV27?.username||'未命名').replace(/%/g,'~');
+ const path=`${projectId}/${defectId}/${type}/${Date.now()}__${uploaderId}__${uploaderName}_${Math.random().toString(36).slice(2)}.${ext}`;
   const {error}=await dh2Cloud.storage.from('defect-photos').upload(path,dataUrlToBlobV27(dataUrl),{contentType:mime,upsert:false});
   if(error)throw error;
   const {error:ie}=await dh2Cloud.from('defect_photos').insert({defect_id:defectId,photo_type:type==='improvement'?'improvement':'defect',storage_path:path});
@@ -4635,7 +4648,7 @@ window.generatePDF=async function(){
 </script>
 
 
-<!-- V63: measure real rendered row heights before Safari print -->
+<!-- V64: V63 stable PDF + uploader/time display -->
 <style id="v63-real-height-pagination">
 /* Measurement mode uses the exact same geometry as print. */
 #v63Measure{position:fixed;left:-12000px;top:0;width:194mm;background:#fff;visibility:hidden;pointer-events:none;z-index:-9999;font-family:"Microsoft JhengHei","Noto Sans TC",sans-serif;color:#000;}
@@ -4663,7 +4676,7 @@ window.generatePDF=async function(){
 <script id="v63-real-height-pagination-script">
 (function(){
 'use strict';
-function setV63(){const sub=document.getElementById('pageSubtitle');if(sub)sub.textContent=(sub.textContent||'多專案工程缺失管理').replace(/V\d+(?:\.\d+)?/i,'V63');const cloud=document.querySelector('#cloudPanelV27 b');if(cloud)cloud.textContent='☁️ DH2 團隊雲端 · V63';document.body.dataset.build='2026-09-15-v63';}
+function setV63(){const sub=document.getElementById('pageSubtitle');if(sub)sub.textContent=(sub.textContent||'多專案工程缺失管理').replace(/V\d+(?:\.\d+)?/i,'V64');const cloud=document.querySelector('#cloudPanelV27 b');if(cloud)cloud.textContent='☁️ DH2 團隊雲端 · V64';document.body.dataset.build='2026-09-22-v64';}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',setV63);else setV63();setTimeout(setV63,700);setTimeout(setV63,1800);
 function items51(){if(typeof reportDefectsV40==='function')return reportDefectsV40();if(typeof filteredDefectsV34==='function')return filteredDefectsV34();return project()?.defects||[];}
 function arr51(x,k,f){return Array.isArray(x&&x[k])?x[k]:(f&&Array.isArray(x&&x[f])?x[f]:[]);}
@@ -4695,16 +4708,16 @@ window.generatePDF=async function(){
 </script>
 
 
-<!-- V63 display lock only: keep original V63 PDF/layout logic unchanged -->
-<script id="v63-display-lock-only">
+<!-- V64 display lock only: keep original V63 PDF/layout logic unchanged -->
+<script id="v64-display-lock-only">
 (function(){
   'use strict';
   function lockV63(){
     var cloud=document.querySelector('#cloudPanelV27 b');
-    if(cloud && cloud.textContent!=='☁️ DH2 團隊雲端 · V63') cloud.textContent='☁️ DH2 團隊雲端 · V63';
+    if(cloud && cloud.textContent!=='☁️ DH2 團隊雲端 · V64') cloud.textContent='☁️ DH2 團隊雲端 · V64';
     var sub=document.getElementById('pageSubtitle');
-    if(sub && /V\d+(?:\.\d+)?/i.test(sub.textContent||'')) sub.textContent=(sub.textContent||'').replace(/V\d+(?:\.\d+)?/ig,'V63');
-    if(document.body) document.body.dataset.build='2026-09-15-v63';
+    if(sub && /V\d+(?:\.\d+)?/i.test(sub.textContent||'')) sub.textContent=(sub.textContent||'').replace(/V\d+(?:\.\d+)?/ig,'V64');
+    if(document.body) document.body.dataset.build='2026-09-22-v64';
   }
   function start(){
     lockV63();
@@ -4766,6 +4779,107 @@ saveDefect=async function(){
     if(result.photoFailures.length)alert(`缺失資料已儲存，但有 ${result.photoFailures.length} 張照片上傳失敗。其他資料不受影響。`);else alert(wasEdit?'缺失已更新並同步雲端':'缺失已儲存並同步雲端');
   }catch(e){setUploadProgressV34('',false);console.error(e);setCloudStatusV27('雲端更新失敗：'+(e.message||e));alert('缺失資料同步失敗：'+(e.message||e));}
 };
+})();
+</script>
+
+
+<!-- V64: improvement photo uploader/time + closed-list close info -->
+<style id="v64-uploader-time-style">
+.v64-photo-meta{font-size:11px;color:#6f7b7e;line-height:1.35;margin-top:5px;text-align:left}
+.v64-improve-card{min-width:0}
+.v64-improve-card img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:12px;display:block}
+.v64-close-meta{display:block;margin-top:4px;font-size:9.5px;line-height:1.25;color:#4f6f64;font-weight:700;white-space:normal}
+</style>
+<script id="v64-uploader-time-script">
+(function(){
+'use strict';
+
+function v64FmtTime(v){
+  if(!v)return '';
+  const d=new Date(v);
+  if(Number.isNaN(d.getTime()))return String(v);
+  const z=n=>String(n).padStart(2,'0');
+  return `${d.getFullYear()}-${z(d.getMonth()+1)}-${z(d.getDate())} ${z(d.getHours())}:${z(d.getMinutes())}`;
+}
+function v64ImproveMeta(x){
+  const photos=Array.isArray(x?.improvementPhotos)?x.improvementPhotos:[];
+  const metas=Array.isArray(x?.improvementPhotoMeta)?x.improvementPhotoMeta:[];
+  return photos.map((url,i)=>{
+    const m=metas.find(a=>a&&a.url===url)||metas[i]||{};
+    return {url,uploaderName:m.uploaderName||'',createdAt:m.createdAt||''};
+  });
+}
+function v64LastImprove(x){
+  const a=v64ImproveMeta(x).filter(m=>m.createdAt);
+  a.sort((a,b)=>String(a.createdAt).localeCompare(String(b.createdAt)));
+  return a[a.length-1]||v64ImproveMeta(x).slice(-1)[0]||null;
+}
+function v64EnhanceDetail(){
+  if(!window.currentId)return;
+  const x=project()?.defects?.find(a=>String(a.id)===String(window.currentId));
+  if(!x)return;
+  const metas=v64ImproveMeta(x);
+  if(!metas.length)return;
+  const grids=[...document.querySelectorAll('#dBody .photo-grid')];
+  const grid=grids[grids.length-1];
+  if(!grid || grid.dataset.v64done==='1')return;
+  const imgs=[...grid.querySelectorAll('img')];
+  if(!imgs.length)return;
+  grid.dataset.v64done='1';
+  imgs.forEach((img,i)=>{
+    const m=metas[i]||{};
+    const wrap=document.createElement('div');
+    wrap.className='v64-improve-card';
+    img.parentNode.insertBefore(wrap,img);
+    wrap.appendChild(img);
+    const info=document.createElement('div');
+    info.className='v64-photo-meta';
+    const who=m.uploaderName||'舊照片';
+    const when=v64FmtTime(m.createdAt);
+    info.textContent=`上傳：${who}${when?' · '+when:''}`;
+    wrap.appendChild(info);
+  });
+}
+const mo=new MutationObserver(()=>v64EnhanceDetail());
+document.addEventListener('DOMContentLoaded',()=>{
+  const d=document.getElementById('dBody');
+  if(d)mo.observe(d,{childList:true,subtree:true});
+});
+
+const oldRenderDefects=window.renderDefects;
+if(typeof oldRenderDefects==='function'){
+  window.renderDefects=function(){
+    const r=oldRenderDefects.apply(this,arguments);
+    setTimeout(()=>{
+      const p=project(); if(!p)return;
+      document.querySelectorAll('.defect-table-v12 tbody tr').forEach(tr=>{
+        const cb=tr.querySelector('.defect-select');
+        const id=cb?.dataset?.id;
+        const x=p.defects.find(a=>String(a.id)===String(id));
+        if(!x || x.status!=='closed')return;
+        const stateCell=tr.querySelector('td:nth-child(4)');
+        if(!stateCell || stateCell.querySelector('.v64-close-meta'))return;
+        const last=v64LastImprove(x);
+        if(!last)return;
+        const div=document.createElement('span');
+        div.className='v64-close-meta';
+        div.textContent=`${last.uploaderName||'舊資料'}${last.createdAt?' · '+v64FmtTime(last.createdAt):''}`;
+        stateCell.appendChild(div);
+      });
+    },0);
+    return r;
+  };
+}
+
+function v64Lock(){
+  const sub=document.getElementById('pageSubtitle');
+  if(sub)sub.textContent=(sub.textContent||'多專案工程缺失管理 · V64').replace(/V\d+(?:\.\d+)?/ig,'V64');
+  const cloud=document.querySelector('#cloudPanelV27 b');
+  if(cloud)cloud.textContent='☁️ DH2 團隊雲端 · V64';
+  if(document.body)document.body.dataset.build='2026-09-22-v64';
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',v64Lock);else v64Lock();
+setTimeout(v64Lock,200);setTimeout(v64Lock,1000);setTimeout(v64Lock,2500);
 })();
 </script>
 
