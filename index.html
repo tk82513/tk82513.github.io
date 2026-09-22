@@ -4648,7 +4648,7 @@ window.generatePDF=async function(){
 </script>
 
 
-<!-- V64: V63 stable PDF + uploader/time display -->
+<!-- V68: V68 stable PDF + uploader/time display -->
 <style id="v63-real-height-pagination">
 /* Measurement mode uses the exact same geometry as print. */
 #v63Measure{position:fixed;left:-12000px;top:0;width:194mm;background:#fff;visibility:hidden;pointer-events:none;z-index:-9999;font-family:"Microsoft JhengHei","Noto Sans TC",sans-serif;color:#000;}
@@ -4676,8 +4676,8 @@ window.generatePDF=async function(){
 <script id="v63-real-height-pagination-script">
 (function(){
 'use strict';
-function setV63(){const sub=document.getElementById('pageSubtitle');if(sub)sub.textContent=(sub.textContent||'多專案工程缺失管理').replace(/V\d+(?:\.\d+)?/i,'V64');const cloud=document.querySelector('#cloudPanelV27 b');if(cloud)cloud.textContent='☁️ DH2 團隊雲端 · V64';document.body.dataset.build='2026-09-22-v64';}
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',setV63);else setV63();setTimeout(setV63,700);setTimeout(setV63,1800);
+function setV68(){const sub=document.getElementById('pageSubtitle');if(sub)sub.textContent=(sub.textContent||'多專案工程缺失管理').replace(/V\d+(?:\.\d+)?/i,'V68');const cloud=document.querySelector('#cloudPanelV27 b');if(cloud)cloud.textContent='☁️ DH2 團隊雲端 · V68';document.body.dataset.build='2026-09-22-v68';}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',setV68);else setV68();setTimeout(setV68,700);setTimeout(setV68,1800);
 function items51(){if(typeof reportDefectsV40==='function')return reportDefectsV40();if(typeof filteredDefectsV34==='function')return filteredDefectsV34();return project()?.defects||[];}
 function arr51(x,k,f){return Array.isArray(x&&x[k])?x[k]:(f&&Array.isArray(x&&x[f])?x[f]:[]);}
 function photos51(a){if(!a.length)return '<div class="v50-photos one"></div>';const u=a.slice(0,4),c=u.length===1?'v50-photos one':'v50-photos';return '<div class="'+c+'">'+u.map(ph=>'<img class="v50-photo" src="'+esc(ph)+'">').join('')+'</div>';}
@@ -4702,38 +4702,36 @@ window.generatePDF=async function(){
  const report=document.getElementById('printReport');report.innerHTML=pages.map((pg,pi)=>shell51(p,pg.map(o=>row51(o.x,o.no)).join(''),(pi+1)+' / '+pages.length,defects.length)).join('');
  await waitForReportImagesV34(report,12000);
  const old=document.title,safe=String(p.name||'DH2').replace(/[\\/:*?"<>|]/g,'_').trim()||'DH2';document.title=safe+'_工程缺失報表_'+localToday();
- const restore=()=>{document.title=old;window.removeEventListener('afterprint',restore);setV63();};window.addEventListener('afterprint',restore);window.print();setTimeout(restore,5000);
+ const restore=()=>{document.title=old;window.removeEventListener('afterprint',restore);setV68();};window.addEventListener('afterprint',restore);window.print();setTimeout(restore,5000);
 };
 })();
 </script>
 
 
-<!-- V64 display lock only: keep original V63 PDF/layout logic unchanged -->
+<!-- V68 display lock only: keep original V68 PDF/layout logic unchanged -->
 <script id="v64-display-lock-only">
 (function(){
   'use strict';
-  function lockV63(){
+  function lockV68(){
     var cloud=document.querySelector('#cloudPanelV27 b');
-    if(cloud && cloud.textContent!=='☁️ DH2 團隊雲端 · V64') cloud.textContent='☁️ DH2 團隊雲端 · V64';
+    if(cloud && cloud.textContent!=='☁️ DH2 團隊雲端 · V68') cloud.textContent='☁️ DH2 團隊雲端 · V68';
     var sub=document.getElementById('pageSubtitle');
-    if(sub && /V\d+(?:\.\d+)?/i.test(sub.textContent||'')) sub.textContent=(sub.textContent||'').replace(/V\d+(?:\.\d+)?/ig,'V64');
-    if(document.body) document.body.dataset.build='2026-09-22-v64';
+    if(sub && /V\d+(?:\.\d+)?/i.test(sub.textContent||'')) sub.textContent=(sub.textContent||'').replace(/V\d+(?:\.\d+)?/ig,'V68');
+    if(document.body) document.body.dataset.build='2026-09-22-v68';
   }
   function start(){
-    lockV63();
-    var target=document.getElementById('cloudPanelV27')||document.body;
-    if(target){ new MutationObserver(lockV63).observe(target,{subtree:true,childList:true,characterData:true}); }
-    setTimeout(lockV63,100); setTimeout(lockV63,500); setTimeout(lockV63,1000); setTimeout(lockV63,2500);
+    lockV68();
+    setTimeout(lockV68,100); setTimeout(lockV68,500); setTimeout(lockV68,1000); setTimeout(lockV68,2500);
   }
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',start); else start();
 })();
 </script>
 
-<!-- V63 save-speed fix only: keep UI/PDF/version display unchanged -->
+<!-- V68 save-speed fix only: keep UI/PDF/version display unchanged -->
 <script id="v63-save-speed-fix">
 (function(){
 'use strict';
-async function saveOneDefectV63(p,x,progressCb){
+async function saveOneDefectV68(p,x,progressCb){
   p.cloudId=p.cloudId||(/^[0-9a-f-]{36}$/i.test(String(p.id))?String(p.id):uuidV27());
   x.cloudId=x.cloudId||(/^[0-9a-f-]{36}$/i.test(String(x.id))?String(x.id):uuidV27());
   const {error:pe}=await dh2Cloud.from('projects').upsert({id:p.cloudId,name:p.name||'工程',no:p.no||null,address:p.address||null,owner:p.owner||null,builder:p.builder||null});
@@ -4774,7 +4772,7 @@ saveDefect=async function(){
   if(!cloudProfileV27||cloudProfileV27.role==='vendor'){closeModal();alert(wasEdit?'缺失已更新':'缺失已儲存');return}
   clearTimeout(cloudTimerV27);setUploadProgressV34('正在儲存缺失資料…');
   try{
-    const result=await saveOneDefectV63(p,x,(done,total,failed)=>setUploadProgressV34(total?`照片上傳 ${done} / ${total}${failed?`（失敗 ${failed}）`:''}`:'正在儲存缺失資料…'));
+    const result=await saveOneDefectV68(p,x,(done,total,failed)=>setUploadProgressV34(total?`照片上傳 ${done} / ${total}${failed?`（失敗 ${failed}）`:''}`:'正在儲存缺失資料…'));
     setUploadProgressV34('',false);closeModal();render();setCloudStatusV27(result.photoFailures.length?`資料已同步；${result.photoFailures.length} 張照片上傳失敗`:'雲端已更新');
     if(result.photoFailures.length)alert(`缺失資料已儲存，但有 ${result.photoFailures.length} 張照片上傳失敗。其他資料不受影響。`);else alert(wasEdit?'缺失已更新並同步雲端':'缺失已儲存並同步雲端');
   }catch(e){setUploadProgressV34('',false);console.error(e);setCloudStatusV27('雲端更新失敗：'+(e.message||e));alert('缺失資料同步失敗：'+(e.message||e));}
@@ -4783,7 +4781,7 @@ saveDefect=async function(){
 </script>
 
 
-<!-- V64: improvement photo uploader/time + closed-list close info -->
+<!-- V68: improvement photo uploader/time + closed-list close info -->
 <style id="v64-uploader-time-style">
 .v64-photo-meta{font-size:11px;color:#6f7b7e;line-height:1.35;margin-top:5px;text-align:left}
 .v64-improve-card{min-width:0}
@@ -4815,8 +4813,8 @@ function v64LastImprove(x){
   return a[a.length-1]||v64ImproveMeta(x).slice(-1)[0]||null;
 }
 function v64EnhanceDetail(){
-  if(!window.currentId)return;
-  const x=project()?.defects?.find(a=>String(a.id)===String(window.currentId));
+  if(!currentId)return;
+  const x=project()?.defects?.find(a=>String(a.id)===String(currentId));
   if(!x)return;
   const metas=v64ImproveMeta(x);
   if(!metas.length)return;
@@ -4873,10 +4871,10 @@ if(typeof oldRenderDefects==='function'){
 
 function v64Lock(){
   const sub=document.getElementById('pageSubtitle');
-  if(sub)sub.textContent=(sub.textContent||'多專案工程缺失管理 · V64').replace(/V\d+(?:\.\d+)?/ig,'V64');
+  if(sub)sub.textContent=(sub.textContent||'多專案工程缺失管理 · V68').replace(/V\d+(?:\.\d+)?/ig,'V68');
   const cloud=document.querySelector('#cloudPanelV27 b');
-  if(cloud)cloud.textContent='☁️ DH2 團隊雲端 · V64';
-  if(document.body)document.body.dataset.build='2026-09-22-v64';
+  if(cloud)cloud.textContent='☁️ DH2 團隊雲端 · V68';
+  if(document.body)document.body.dataset.build='2026-09-22-v68';
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',v64Lock);else v64Lock();
 setTimeout(v64Lock,200);setTimeout(v64Lock,1000);setTimeout(v64Lock,2500);
@@ -4884,7 +4882,7 @@ setTimeout(v64Lock,200);setTimeout(v64Lock,1000);setTimeout(v64Lock,2500);
 </script>
 
 
-<!-- V65: status cloud persistence + single-line closed time -->
+<!-- V68: status cloud persistence + single-line closed time -->
 <style id="v65-status-fix-style">
 .v64-close-meta{
   display:block!important;
@@ -4906,10 +4904,10 @@ setTimeout(v64Lock,200);setTimeout(v64Lock,1000);setTimeout(v64Lock,2500);
 (function(){
 'use strict';
 
-/* V65: Status changes must be written to Supabase first.
-   V64 only changed local state, so the next cloud refresh restored the old status. */
+/* V68: Status changes must be written to Supabase first.
+   V68 only changed local state, so the next cloud refresh restored the old status. */
 window.setStatus = async function(status){
-  const x=project()?.defects?.find(a=>String(a.id)===String(window.currentId));
+  const x=project()?.defects?.find(a=>String(a.id)===String(currentId));
   if(!x)return;
 
   const oldStatus=x.status;
@@ -4942,7 +4940,7 @@ function v65Fmt(v){
   return `${d.getFullYear()}-${z(d.getMonth()+1)}-${z(d.getDate())} ${z(d.getHours())}:${z(d.getMinutes())}`;
 }
 
-/* Replace V64's wrapped status metadata with a compact one-line value. */
+/* Replace V68's wrapped status metadata with a compact one-line value. */
 function v65CompactClosedMeta(){
   document.querySelectorAll('.v64-close-meta').forEach(el=>{
     let t=(el.textContent||'').trim();
@@ -4953,18 +4951,14 @@ function v65CompactClosedMeta(){
   });
 }
 
-const obs=new MutationObserver(()=>v65CompactClosedMeta());
-document.addEventListener('DOMContentLoaded',()=>{
-  obs.observe(document.body,{childList:true,subtree:true});
-  v65CompactClosedMeta();
-});
+document.addEventListener('DOMContentLoaded',v65CompactClosedMeta);
 
 function v65Lock(){
   const sub=document.getElementById('pageSubtitle');
-  if(sub)sub.textContent=(sub.textContent||'多專案工程缺失管理 · V65').replace(/V\d+(?:\.\d+)?/ig,'V65');
+  if(sub)sub.textContent=(sub.textContent||'多專案工程缺失管理 · V68').replace(/V\d+(?:\.\d+)?/ig,'V68');
   const cloud=document.querySelector('#cloudPanelV27 b');
-  if(cloud)cloud.textContent='☁️ DH2 團隊雲端 · V65';
-  if(document.body)document.body.dataset.build='2026-09-22-v65';
+  if(cloud)cloud.textContent='☁️ DH2 團隊雲端 · V68';
+  if(document.body)document.body.dataset.build='2026-09-22-v68';
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',v65Lock);else v65Lock();
 setTimeout(v65Lock,200);setTimeout(v65Lock,1000);setTimeout(v65Lock,2500);
@@ -4972,30 +4966,45 @@ setTimeout(v65Lock,200);setTimeout(v65Lock,1000);setTimeout(v65Lock,2500);
 </script>
 
 
-<!-- V67 stable hotfix: rollback V66 recursive detail DOM observer; keep V65/V64 photo metadata -->
+<!-- V68 stable hotfix: rollback V66 recursive detail DOM observer; keep V68/V68 photo metadata -->
 <script id="v67-stable-hotfix">
 (function(){
 'use strict';
-function lockV67(){
+function lockV68(){
   const sub=document.getElementById('pageSubtitle');
   if(sub){
     const t=sub.textContent||'多專案工程缺失管理';
     sub.textContent=/V\d+(?:\.\d+)?/i.test(t)
-      ? t.replace(/V\d+(?:\.\d+)?/ig,'V67')
-      : t+' · V67';
+      ? t.replace(/V\d+(?:\.\d+)?/ig,'V68')
+      : t+' · V68';
   }
   const cloud=document.querySelector('#cloudPanelV27 b');
-  if(cloud)cloud.textContent='☁️ DH2 團隊雲端 · V67';
-  if(document.body)document.body.dataset.build='2026-09-22-v67';
+  if(cloud)cloud.textContent='☁️ DH2 團隊雲端 · V68';
+  if(document.body)document.body.dataset.build='2026-09-22-v68';
 }
 if(document.readyState==='loading'){
-  document.addEventListener('DOMContentLoaded',lockV67,{once:true});
+  document.addEventListener('DOMContentLoaded',lockV68,{once:true});
 }else{
-  lockV67();
+  lockV68();
 }
-setTimeout(lockV67,250);
-setTimeout(lockV67,1200);
+setTimeout(lockV68,250);
+setTimeout(lockV68,1200);
 })();
 </script>
 
+
+<!-- V68 final stable marker: one version source, no MutationObserver -->
+<script id="v68-final-version">
+(function(){
+  function showV68(){
+    const sub=document.getElementById('pageSubtitle');
+    if(sub){const base=(sub.textContent||'多專案工程缺失管理').replace(/\s*[·・]?\s*V\d+(?:\.\d+)?/ig,'');sub.textContent=base+' · V68';}
+    const cloud=document.querySelector('#cloudPanelV27 b');
+    if(cloud)cloud.textContent='☁️ DH2 團隊雲端 · V68';
+    if(document.body)document.body.dataset.build='2026-09-22-v68';
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',showV68,{once:true});else showV68();
+  setTimeout(showV68,3000);
+})();
+</script>
 </body></html>
