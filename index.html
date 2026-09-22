@@ -5161,10 +5161,10 @@ function markV78(){
   const sub=document.getElementById('pageSubtitle');
   if(sub){
     const base=(sub.textContent||'多專案工程缺失管理').replace(/\s*[·・]?\s*V\d+(?:\.\d+)?/ig,'');
-    sub.textContent=base+' · V79';
+    sub.textContent=base+' · V78';
   }
   const cloud=document.querySelector('#cloudPanelV27 b');
-  if(cloud)cloud.textContent='☁️ DH2 團隊雲端 · V79';
+  if(cloud)cloud.textContent='☁️ DH2 團隊雲端 · V78';
   if(document.body)document.body.dataset.build='2026-09-22-v78-photo-delete-status';
 }
 
@@ -5308,139 +5308,6 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 else markV78();
 setTimeout(markV78,1200);
 setTimeout(markV78,4000);
-})();
-</script>
-
-
-<!-- V79: when filtering Closed, sort by reply/closed date oldest -> newest -->
-<script id="v79-closed-reply-sort">
-(function(){
-'use strict';
-
-function ymdV79(v){
-  if(!v) return '';
-  const m=String(v).match(/\d{4}-\d{2}-\d{2}/);
-  return m ? m[0] : '';
-}
-
-function closedReplyDateV79(d){
-  if(!d) return '';
-  /* Prefer the same closing/reply date shown beneath "已關閉". */
-  const direct = [
-    d.closedDate, d.closed_date,
-    d.completedDate, d.completed_date,
-    d.improvementCompletedDate, d.improvement_completed_date,
-    d.replyDate, d.reply_date,
-    d.statusUpdatedDate, d.status_updated_date
-  ];
-  for(const v of direct){
-    const s=ymdV79(v);
-    if(s) return s;
-  }
-
-  /* Fall back to latest improvement-photo upload date if that is what supplied the displayed date. */
-  const metas=Array.isArray(d.improvementPhotoMeta)?d.improvementPhotoMeta:[];
-  const dates=metas.map(m=>ymdV79(m?.created_at||m?.createdAt||m?.uploaded_at||m?.uploadedAt)).filter(Boolean);
-  if(dates.length) return dates.sort().at(-1);
-
-  return '';
-}
-
-function isClosedFilterV79(){
-  const candidates=[
-    document.getElementById('statusFilter'),
-    document.getElementById('filterStatus'),
-    document.querySelector('select[data-filter="status"]')
-  ].filter(Boolean);
-  for(const el of candidates){
-    const v=String(el.value||'').toLowerCase();
-    const t=String(el.options?.[el.selectedIndex]?.text||'');
-    if(v==='closed'||v==='done'||t.includes('已關閉')) return true;
-  }
-  /* Also recognize an active status chip/button. */
-  return [...document.querySelectorAll('button,.chip,.pill')]
-    .some(el=>el.classList.contains('active') && (el.textContent||'').includes('已關閉'));
-}
-
-function sortClosedV79(arr){
-  if(!Array.isArray(arr) || !isClosedFilterV79()) return arr;
-  return arr.slice().sort((a,b)=>{
-    const ad=closedReplyDateV79(a), bd=closedReplyDateV79(b);
-    if(ad && bd && ad!==bd) return ad.localeCompare(bd); // oldest -> newest
-    if(ad && !bd) return -1;
-    if(!ad && bd) return 1;
-    const ac=ymdV79(a?.createdAt||a?.created_at||a?.startDate||a?.start_date);
-    const bc=ymdV79(b?.createdAt||b?.created_at||b?.startDate||b?.start_date);
-    if(ac!==bc) return ac.localeCompare(bc);
-    return String(a?.id||'').localeCompare(String(b?.id||''));
-  });
-}
-
-/* Wrap Array.sort only inside the app's defect rendering pass when possible by exposing helper. */
-window.sortClosedByReplyDateV79=sortClosedV79;
-window.closedReplyDateV79=closedReplyDateV79;
-
-/* Patch common render/filter functions without changing other status ordering. */
-['renderDefects','renderList','renderDefectList','applyFilters','renderV27','renderDefectsV27'].forEach(name=>{
-  const old=window[name];
-  if(typeof old!=='function' || old.__v79wrapped) return;
-  const wrapped=function(){
-    const r=old.apply(this,arguments);
-    /* If renderer derives its own array, DOM fallback below guarantees the visible order. */
-    setTimeout(reorderClosedRowsV79,0);
-    return r;
-  };
-  wrapped.__v79wrapped=true;
-  window[name]=wrapped;
-});
-
-function rowDateV79(row){
-  /* Read the same visible YYYY-MM-DD near the closed-status cell. */
-  const txt=row?.innerText||'';
-  const matches=[...txt.matchAll(/\d{4}-\d{2}-\d{2}/g)].map(m=>m[0]);
-  return matches.length ? matches[matches.length-1] : '';
-}
-
-function reorderClosedRowsV79(){
-  if(!isClosedFilterV79()) return;
-  const tables=[...document.querySelectorAll('table tbody')];
-  for(const tbody of tables){
-    const rows=[...tbody.children].filter(el=>el.tagName==='TR' && (el.innerText||'').includes('已關閉'));
-    if(rows.length<2) continue;
-    const sorted=rows.slice().sort((a,b)=>{
-      const ad=rowDateV79(a), bd=rowDateV79(b);
-      if(ad&&bd&&ad!==bd) return ad.localeCompare(bd);
-      if(ad&&!bd) return -1;
-      if(!ad&&bd) return 1;
-      return 0;
-    });
-    sorted.forEach(r=>tbody.appendChild(r));
-  }
-}
-
-/* Re-run after filter changes and app redraws. */
-document.addEventListener('change',()=>setTimeout(reorderClosedRowsV79,30),true);
-document.addEventListener('click',()=>setTimeout(reorderClosedRowsV79,80),true);
-const obs=new MutationObserver(()=>setTimeout(reorderClosedRowsV79,20));
-document.addEventListener('DOMContentLoaded',()=>{
-  obs.observe(document.body,{childList:true,subtree:true});
-  reorderClosedRowsV79();
-},{once:true});
-
-/* Version badge */
-function markV79(){
-  const sub=document.getElementById('pageSubtitle');
-  if(sub){
-    const base=(sub.textContent||'多專案工程缺失管理').replace(/\s*[·・]?\s*V\d+(?:\.\d+)?/ig,'');
-    sub.textContent=base+' · V79';
-  }
-  const cloud=document.querySelector('#cloudPanelV27 b');
-  if(cloud) cloud.textContent='☁️ DH2 團隊雲端 · V79';
-  if(document.body) document.body.dataset.build='2026-09-22-v79-closed-reply-sort';
-}
-if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',markV79,{once:true});
-else markV79();
-setTimeout(markV79,1200);
 })();
 </script>
 
@@ -5590,5 +5457,118 @@ setTimeout(showV73,3500);
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',markV77,{once:true});else markV77();
   setTimeout(markV77,1200);setTimeout(markV77,4000);
+})();
+</script>
+
+
+<!-- V80 FINAL OVERRIDE: closed list = improvement reply date oldest -> newest -->
+<style id="v80-style">
+.date-separator-v80 td{
+  background:#edf7f4!important;
+  color:#315e56!important;
+  font-weight:900!important;
+}
+</style>
+<script id="v80-final-closed-sort">
+(function(){
+'use strict';
+
+function v80Date(v){
+  if(!v)return '';
+  const m=String(v).match(/\d{4}-\d{2}-\d{2}/);
+  return m?m[0]:'';
+}
+function v80ReplyDate(x){
+  const metas=Array.isArray(x?.improvementPhotoMeta)?x.improvementPhotoMeta:[];
+  const ds=metas.map(m=>v80Date(m?.createdAt||m?.created_at||m?.uploadedAt||m?.uploaded_at)).filter(Boolean);
+  if(ds.length)return ds.sort().at(-1);
+  return v80Date(x?.closedDate||x?.closed_date||x?.completedDate||x?.completed_date||x?.replyDate||x?.reply_date);
+}
+function v80ClosedOnly(){
+  try{
+    if(typeof selected!=='undefined' && selected?.filter instanceof Set){
+      return selected.filter.size===1 && selected.filter.has('closed');
+    }
+  }catch(_){}
+  const f=document.getElementById('filter');
+  return f?.value==='closed';
+}
+function v80SortDefects(arr){
+  return arr.slice().sort((a,b)=>{
+    const ad=v80ReplyDate(a),bd=v80ReplyDate(b);
+    if(ad&&bd&&ad!==bd)return ad.localeCompare(bd);
+    if(ad&&!bd)return -1;
+    if(!ad&&bd)return 1;
+    const ac=v80Date(a?.created||a?.createdAt||a?.created_at);
+    const bc=v80Date(b?.created||b?.createdAt||b?.created_at);
+    if(ac!==bc)return ac.localeCompare(bc);
+    return String(a?.id||'').localeCompare(String(b?.id||''));
+  });
+}
+function v80RebuildReplySeparators(){
+  if(!v80ClosedOnly())return;
+  const p=project?.(); if(!p)return;
+  const tbody=document.querySelector('#list .defect-table-v12 tbody');
+  if(!tbody)return;
+
+  tbody.querySelectorAll('.date-separator-v35,.date-separator-v80').forEach(e=>e.remove());
+  let prev=null;
+  [...tbody.querySelectorAll('tr')].forEach(row=>{
+    const id=row.querySelector('.defect-select')?.dataset?.id;
+    const x=p.defects?.find(a=>String(a.id)===String(id));
+    if(!x||x.status!=='closed')return;
+    const d=v80ReplyDate(x)||'無回覆日期';
+    if(d!==prev){
+      const sep=document.createElement('tr');
+      sep.className='date-separator-v80';
+      sep.innerHTML=`<td colspan="5">改善回覆日期：${d}</td>`;
+      row.before(sep);
+      prev=d;
+    }
+  });
+}
+const previousV80=window.renderDefects;
+if(typeof previousV80==='function'){
+  window.renderDefects=function(){
+    const p=project?.();
+    if(!p || !v80ClosedOnly()){
+      const r=previousV80.apply(this,arguments);
+      setTimeout(v80RebuildReplySeparators,0);
+      return r;
+    }
+
+    const original=p.defects;
+    p.defects=v80SortDefects(original);
+    let r;
+    try{
+      r=previousV80.apply(this,arguments);
+    }finally{
+      p.defects=original;
+    }
+    setTimeout(v80RebuildReplySeparators,0);
+    return r;
+  };
+}
+
+function markV80(){
+  const sub=document.getElementById('pageSubtitle');
+  if(sub){
+    const base=(sub.textContent||'多專案工程缺失管理').replace(/\s*[·・]?\s*V\d+(?:\.\d+)?/ig,'');
+    sub.textContent=base+' · V80';
+  }
+  const cloud=document.querySelector('#cloudPanelV27 b');
+  if(cloud)cloud.textContent='☁️ DH2 團隊雲端 · V80';
+  if(document.body)document.body.dataset.build='2026-09-22-v80-closed-reply-sort-fixed';
+}
+
+/* Older patches keep trying to write V77, so V80 deliberately runs after them. */
+if(document.readyState==='loading'){
+  document.addEventListener('DOMContentLoaded',()=>{markV80();setTimeout(markV80,4200);},{once:true});
+}else{
+  markV80();setTimeout(markV80,4200);
+}
+document.addEventListener('click',()=>setTimeout(()=>{markV80();v80RebuildReplySeparators();},100),true);
+document.addEventListener('change',()=>setTimeout(()=>{markV80();v80RebuildReplySeparators();},50),true);
+setTimeout(markV80,5500);
 })();
 </script>
