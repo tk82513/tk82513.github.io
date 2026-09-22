@@ -501,11 +501,11 @@ main{max-width:980px;padding:8px 20px 160px}
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js" onerror="this.onerror=null;this.src='https://unpkg.com/jspdf@2.5.2/dist/jspdf.umd.min.js'"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js"></script>
 </head>
-<body data-build="2026-09-22-v77-photo-owner-fix">
+<body data-build="2026-09-22-v81-single-status-filter">
 <header>
 <div>
   <h1 id="pageTitle">我的工程</h1>
-  <div class="sub" id="pageSubtitle">多專案工程缺失管理 · V77</div>
+  <div class="sub" id="pageSubtitle">多專案工程缺失管理 · V81</div>
 </div>
 <button class="secondary" id="headerAction" onclick="openProject()">＋ 新增工程</button>
 </header>
@@ -3958,6 +3958,8 @@ function install(){
  cfg.forEach(([id])=>{
    const el=document.getElementById(id);if(!el)return;
    el.style.display='none';
+   // 狀態不再建立重複的下拉選單，只保留下面三顆狀態按鈕。
+   if(id==='filter')return;
    const box=document.createElement('div');box.className='v356-multi';box.dataset.for=id;
    box.innerHTML=`<button type="button"></button><div class="v356-menu"></div>`;
    el.after(box);
@@ -3973,11 +3975,14 @@ function install(){
    const clear=document.createElement('button');
    clear.type='button';clear.id='v356ClearFilters';clear.textContent='清除篩選';
    clear.onclick=()=>{
+     const search=document.getElementById('search'); if(search)search.value='';
      Object.keys(selected).forEach(k=>selected[k].clear());
      Object.keys(selected).forEach(k=>{syncHidden(k);renderMenu(k)});
      renderDefects();
    };
-   toolbar.appendChild(clear);
+   // 放到原本「狀態」下拉選單的位置，縮減手機版面。
+   const statusSelect=document.getElementById('filter');
+   if(statusSelect)statusSelect.after(clear);else toolbar.prepend(clear);
  }
  document.addEventListener('click',e=>{if(!e.target.closest('.v356-multi'))document.querySelectorAll('.v356-multi.open').forEach(x=>x.classList.remove('open'))});
 }
@@ -4027,16 +4032,23 @@ window.renderDefects=function(){
  document.getElementById('tabPendingCount').textContent=pending;
  document.getElementById('tabDoingCount').textContent=doing;
  document.getElementById('tabClosedCount').textContent=closed;
+ ['pending','doing','closed'].forEach(v=>{
+   const id=v==='pending'?'tabPending':v==='doing'?'tabDoing':'tabClosed';
+   document.getElementById(id)?.classList.toggle('active',selected.filter.size===1&&selected.filter.has(v));
+ });
  const st=document.getElementById('defectSectionTitle');if(st)st.textContent=`缺失（${visibleDefectIds.length}）`;
 
  cfg.forEach(([id])=>renderMenu(id));
  return out;
 };
 
-// Quick status buttons become multi-select toggles.
+// 狀態按鈕改為單項篩選：一次只允許一個狀態；再點同一顆則取消狀態篩選。
 window.quickStatusFilter=function(status){
- selected.filter.has(status)?selected.filter.delete(status):selected.filter.add(status);
- syncHidden('filter');renderMenu('filter');renderDefects();
+ const alreadyOnly=selected.filter.size===1 && selected.filter.has(status);
+ selected.filter.clear();
+ if(!alreadyOnly)selected.filter.add(status);
+ syncHidden('filter');
+ renderDefects();
 };
 
 // On first load / project entry: pending only.
