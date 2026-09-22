@@ -5136,6 +5136,181 @@ setTimeout(lockV68,1200);
   setTimeout(showV68,3000);
 })();
 </script>
+
+<!-- V78: vendor photo delete tap fix + prominent bottom status selector -->
+<style id="v78-style">
+#vendorStatusBottomV78{
+  margin:22px 0 14px;padding:16px;border:2px solid #19796e;border-radius:16px;
+  background:#eef8f5;
+}
+#vendorStatusBottomV78 label{
+  margin:0 0 9px;color:#11665d;font-size:17px;font-weight:900;
+}
+#vendorStatusBottomV78 select{
+  height:56px;font-size:17px;font-weight:800;border:2px solid #9ccfc5;background:#fff;
+}
+#vendorExistingPhotosV351 .photo-delete{
+  z-index:20!important;pointer-events:auto!important;touch-action:manipulation!important;
+}
+</style>
+<script id="v78-fix">
+(function(){
+'use strict';
+
+function markV78(){
+  const sub=document.getElementById('pageSubtitle');
+  if(sub){
+    const base=(sub.textContent||'多專案工程缺失管理').replace(/\s*[·・]?\s*V\d+(?:\.\d+)?/ig,'');
+    sub.textContent=base+' · V78';
+  }
+  const cloud=document.querySelector('#cloudPanelV27 b');
+  if(cloud)cloud.textContent='☁️ DH2 團隊雲端 · V78';
+  if(document.body)document.body.dataset.build='2026-09-22-v78-photo-delete-status';
+}
+
+function storagePathFromUrlV78(url){
+  try{
+    const u=new URL(url,location.href);
+    const marks=[
+      '/storage/v1/object/public/defect-photos/',
+      '/storage/v1/object/sign/defect-photos/',
+      '/storage/v1/object/authenticated/defect-photos/'
+    ];
+    for(const m of marks){
+      const i=u.pathname.indexOf(m);
+      if(i>=0)return decodeURIComponent(u.pathname.slice(i+m.length));
+    }
+  }catch(_){}
+  return '';
+}
+
+async function deleteCloudImprovementV78(x,url){
+  if(!window.dh2Cloud && typeof dh2Cloud==='undefined')throw new Error('雲端尚未連線');
+  const db = (typeof dh2Cloud!=='undefined') ? dh2Cloud : window.dh2Cloud;
+  const metas=Array.isArray(x?.improvementPhotoMeta)?x.improvementPhotoMeta:[];
+  const meta=metas.find(m=>m && m.url===url);
+  let q=db.from('defect_photos').delete();
+
+  if(meta?.id){
+    q=q.eq('id',meta.id);
+  }else{
+    const path=meta?.storagePath||meta?.storage_path||storagePathFromUrlV78(url);
+    if(!path)throw new Error('找不到照片識別資料，請先按「重新同步」後再刪除。');
+    q=q.eq('defect_id',x.cloudId||x.id)
+       .eq('photo_type','improvement')
+       .eq('storage_path',path);
+  }
+
+  const {data,error}=await q.select('id,storage_path');
+  if(error)throw error;
+  if(!data?.length)throw new Error('雲端沒有刪除任何照片，請確認帳號刪除權限。');
+
+  const paths=[...new Set(data.map(r=>r.storage_path).filter(Boolean))];
+  if(paths.length){
+    const {error:se}=await db.storage.from('defect-photos').remove(paths);
+    if(se)console.warn('V78 storage remove:',se);
+  }
+}
+
+function renderExistingV78(x){
+  const box=document.getElementById('vendorExistingPhotosV351');
+  if(!box)return;
+  const arr=[...new Set((x?.improvementPhotos||[]).filter(Boolean))];
+  box.innerHTML=arr.length ? arr.map((p,i)=>
+    `<div class="photo-wrap"><img src="${esc(p)}"><button type="button" class="photo-delete v78-delete-existing" data-index="${i}" aria-label="刪除改善照片">×</button></div>`
+  ).join('') : '<div class="sub">目前沒有已上傳的改善照片。</div>';
+}
+
+async function deleteAtV78(i){
+  if(window.v351VendorSaving)return;
+  const x=project()?.defects?.find(a=>String(a.id)===String(currentId));
+  const arr=[...new Set((x?.improvementPhotos||[]).filter(Boolean))];
+  const item=arr[i];
+  if(!x||!item)return;
+  if(!confirm('確定永久刪除這張已上傳的改善照片嗎？'))return;
+
+  try{
+    window.v351VendorSaving=true;
+    const btn=document.getElementById('vendorSaveBtnV351');
+    if(btn)btn.disabled=true;
+    if(typeof setUploadProgressV34==='function')setUploadProgressV34('正在永久刪除改善照片…');
+    await deleteCloudImprovementV78(x,item);
+
+    x.improvementPhotos=(x.improvementPhotos||[]).filter(v=>v!==item);
+    x.improvementPhotoMeta=(x.improvementPhotoMeta||[]).filter(m=>m?.url!==item);
+    renderExistingV78(x);
+
+    if(typeof cloudLoadAllV27==='function')await cloudLoadAllV27();
+    const fresh=project()?.defects?.find(a=>String(a.id)===String(currentId));
+    if(fresh)renderExistingV78(fresh);
+    if(typeof setCloudStatusV27==='function')setCloudStatusV27('改善照片已永久刪除');
+  }catch(e){
+    console.error(e);
+    alert('刪除失敗：'+(e?.message||e));
+  }finally{
+    window.v351VendorSaving=false;
+    const btn=document.getElementById('vendorSaveBtnV351');
+    if(btn)btn.disabled=false;
+    if(typeof setUploadProgressV34==='function')setUploadProgressV34('',false);
+  }
+}
+
+document.addEventListener('click',function(e){
+  const btn=e.target.closest?.('.v78-delete-existing');
+  if(!btn)return;
+  e.preventDefault();
+  e.stopPropagation();
+  e.stopImmediatePropagation();
+  deleteAtV78(Number(btn.dataset.index));
+},true);
+
+function installBottomStatusV78(){
+  const box=document.getElementById('vendorBoxV351');
+  if(!box || box.style.display==='none')return;
+  const save=document.getElementById('vendorSaveBtnV351');
+  const actions=save?.closest('.actions');
+  const top=document.getElementById('vendorStatusV351');
+  if(!actions||!top)return;
+
+  let block=document.getElementById('vendorStatusBottomV78');
+  if(!block){
+    block=document.createElement('div');
+    block.id='vendorStatusBottomV78';
+    block.innerHTML=`<label for="vendorStatusV78">改善狀態</label>
+      <select id="vendorStatusV78">
+        <option value="pending">🔴 待處理</option>
+        <option value="doing">🟠 進行中</option>
+        <option value="closed">🟢 已關閉</option>
+      </select>`;
+    actions.parentNode.insertBefore(block,actions);
+    const bottom=block.querySelector('select');
+    bottom.addEventListener('change',()=>{ top.value=bottom.value; });
+    top.addEventListener('change',()=>{ bottom.value=top.value; });
+  }
+  block.querySelector('select').value=top.value;
+}
+
+const oldOpen=window.openVendorImproveV27;
+if(typeof oldOpen==='function'){
+  window.openVendorImproveV27=function(){
+    const r=oldOpen.apply(this,arguments);
+    setTimeout(()=>{
+      const x=project()?.defects?.find(a=>String(a.id)===String(currentId));
+      if(x)renderExistingV78(x);
+      installBottomStatusV78();
+      markV78();
+    },0);
+    return r;
+  };
+}
+
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',markV78,{once:true});
+else markV78();
+setTimeout(markV78,1200);
+setTimeout(markV78,4000);
+})();
+</script>
+
 </body></html>
 
 
